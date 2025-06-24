@@ -1,9 +1,9 @@
 # %%
 from schema.experiment_data import ExperimentData
 
-experiment_data = ExperimentData(upper_workpiece_id=1)
+experiment_data = ExperimentData(upper_workpiece_id=17401)
 
-experiment_data.injection_upper.class_value
+experiment_data.screw_left.angle
 
 
 # %% Next steps

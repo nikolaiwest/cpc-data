@@ -1,5 +1,5 @@
-from .injection_molding import UpperInjectionMoldingData, LowerInjectionMoldingData
-from .screw_tightening import ScrewDrivingData
+from .injection_molding import LowerInjectionMoldingData, UpperInjectionMoldingData
+from .screw_driving import ScrewDrivingData
 
 
 class ExperimentData:
@@ -14,8 +14,8 @@ class ExperimentData:
         # Load all 4 process data streams
         self.injection_upper = UpperInjectionMoldingData(upper_workpiece_id)
         self.injection_lower = LowerInjectionMoldingData(upper_workpiece_id)
-        self.screw_left = ScrewDrivingData(upper_workpiece_id)  # , position="left")
-        self.screw_right = ScrewDrivingData(upper_workpiece_id)  # , position="right")
+        self.screw_left = ScrewDrivingData(upper_workpiece_id, position="left")
+        self.screw_right = ScrewDrivingData(upper_workpiece_id, position="right")
 
     def __repr__(self):
         return f"ExperimentData(upper_workpiece_id={self.upper_workpiece_id})"

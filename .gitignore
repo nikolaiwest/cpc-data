@@ -1,7 +1,12 @@
-# Ignore specific file types in data directory
+# Ignore specific file types in data directory  
 data/**/**/*.json
 data/**/**/**/*.txt
 data/**/**/**/*.csv
+
+# But include three example files for reference
+!data/injection_molding/upper_workpiece/raw_data/upper_workpiece_cycle_00001.csv
+!data/injection_molding/lower_workpiece/raw_data/lower_workpiece_cycle_00002.txt
+!data/tightening_process/raw_data/Ch_000001619516.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
