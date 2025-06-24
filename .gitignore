@@ -1,3 +1,8 @@
+# Ignore specific file types in data directory
+data/**/**/*.json
+data/**/**/**/*.txt
+data/**/**/**/*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
