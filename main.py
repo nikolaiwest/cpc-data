@@ -91,7 +91,7 @@ except Exception as e:
 print("\nTesting different class columns...")
 try:
     tightening_dataset = ExperimentDataset.from_class_values(
-        class_column="class_value_tightening_process",
+        class_column="class_value_screw_driving",
         filter_type="contains",
         filter_value="temperature",
         sample_size=2,

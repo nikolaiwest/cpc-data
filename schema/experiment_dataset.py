@@ -41,7 +41,7 @@ class ExperimentDataset:
             class_column: Which class column to filter on:
                         - "class_value_upper_work_piece"
                         - "class_value_lower_work_piece"
-                        - "class_value_tightening_process"
+                        - "class_value_screw_driving"
             filter_type: How to filter:
                         - "exact": Exact match (old behavior)
                         - "contains": Values containing substring
