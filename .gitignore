@@ -3,6 +3,10 @@ data/**/**/*.json
 data/**/**/**/*.txt
 data/**/**/**/*.csv
 
+# Ignore the helper script + class value collection
+data/class_values_from_excel.py
+data/class_values.xlsx
+
 # But include three example files for reference
 !data/injection_molding/upper_workpiece/raw_data/upper_workpiece_cycle_00001.csv
 !data/injection_molding/lower_workpiece/raw_data/lower_workpiece_cycle_00002.txt
@@ -12,6 +16,7 @@ data/**/**/**/*.csv
 !data/injection_molding/upper_workpiece/meta_data.csv
 !data/injection_molding/lower_workpiece/meta_data.csv
 !data/tightening_process/meta_data.csv
+!data/class_values.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
