@@ -1,4 +1,4 @@
-,upper_workpiece_id,lower_workpiece_id,class_value_upper_work_piece,class_value_lower_work_piece,class_value_tightening_process
+,upper_workpiece_id,lower_workpiece_id,class_value_upper_work_piece,class_value_lower_work_piece,class_value_screw_driving
 0,1,workpiece_not_used,control_group_01,,
 1,2,workpiece_not_used,control_group_01,,
 2,3,workpiece_not_used,control_group_01,,
