@@ -90,6 +90,22 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
     def _get_metadata_path(self):
         return "data/injection_molding/upper_workpiece/meta_data.csv"
 
+    def _get_class_name(self):
+        return "injection_upper"
+
+    def _get_time_series_data(self):
+        """Return dict of time series data for upper injection molding."""
+        if self.time_series is None:
+            return None
+        return {
+            "time_series": self.time_series,
+            "injection_pressure": self.injection_pressure,
+            "resulting_injection_pressure": self.resulting_injection_pressure,
+            "melt_volume": self.melt_volume,
+            "injection_velocity": self.injection_velocity,
+            "state": self.state,
+        }
+
     def _load_cycle_data(self):
         """Load time series data from CSV file"""
         csv_path = f"data/injection_molding/upper_workpiece/raw_data/{self.file_name}"
@@ -118,6 +134,21 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _get_metadata_path(self):
         return "data/injection_molding/lower_workpiece/meta_data.csv"
+
+    def _get_class_name(self):
+        return "injection_lower"
+
+    def _get_time_series_data(self):
+        """Return dict of time series data for lower injection molding."""
+        if self.time_series is None:
+            return None
+        return {
+            "time_series": self.time_series,
+            "injection_pressure": self.injection_pressure,
+            "injection_pressure_target": self.injection_pressure_target,
+            "melt_volume": self.melt_volume,
+            "injection_velocity": self.injection_velocity,
+        }
 
     def _load_cycle_data(self):
         """Load time series data from TXT file with special format"""

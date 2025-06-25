@@ -1,4 +1,5 @@
 import json
+import os
 
 import pandas as pd
 
@@ -24,7 +25,7 @@ class ScrewDrivingData(BaseData):
 
     def _load_metadata(self):
         """Load metadata from screw driving meta_data.csv. Returns True if found, False if not."""
-        csv_path = "data/tightening_process/meta_data.csv"
+        csv_path = "data/screw_driving/meta_data.csv"
         df_meta = pd.read_csv(csv_path, index_col=0, sep=";")  # run_id is index
 
         # Filter by upper_workpiece_id first
@@ -46,11 +47,10 @@ class ScrewDrivingData(BaseData):
 
         # Store metadata attributes
         self.file_name = meta["file_name"]
-        self.upper_workpiece_id = meta["upper_workpiece_id"]
+        self.workpiece_id = meta["upper_workpiece_id"]
         self.class_value = meta["class_value"]
         self.date = meta["date"]
         self.time = meta["time"]
-
         self.workpiece_usage = meta["workpiece_usage"]
         self.workpiece_result = meta["workpiece_result"]
         self.scenario_condition = meta["scenario_condition"]
@@ -62,7 +62,7 @@ class ScrewDrivingData(BaseData):
 
     def _load_cycle_data(self):
         """Load time series data from JSON file and combine all steps"""
-        json_path = f"data/tightening_process/raw_data/{self.file_name}"
+        json_path = f"data/screw_driving/raw_data/{self.file_name}"
 
         with open(json_path, "r") as file:
             json_data = json.load(file)
@@ -101,7 +101,7 @@ class ScrewDrivingData(BaseData):
         self.file_name = None
         self.workpiece_id = None
         self.class_value = None
-        self.workpiece_date = None
+        self.date = None
         self.workpiece_usage = None
         self.workpiece_result = None
         self.scenario_condition = None
@@ -115,6 +115,21 @@ class ScrewDrivingData(BaseData):
         self.gradient = None
         self.steps_count = None
         self.steps_names = None
+
+    def _get_class_name(self):
+        """Return class name based on position for config lookup."""
+        return f"screw_{self.position}"
+
+    def _get_time_series_data(self):
+        """Return dict of time series data for screw driving."""
+        if self.time_series is None:
+            return None
+        return {
+            "time_series": self.time_series,
+            "torque": self.torque,
+            "angle": self.angle,
+            "gradient": self.gradient,
+        }
 
     def get_measurements(self):
         """Return dict of all measurement values for this workpiece"""

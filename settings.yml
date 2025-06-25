@@ -1,0 +1,63 @@
+extraction:
+  injection_upper:
+    injection_pressure:
+      use_series: true
+      method: "paa"
+      segments: 20
+      normalize: true
+    melt_volume:
+      use_series: true  
+      method: "tsfresh"
+      normalize: false
+    injection_velocity:
+      use_series: true
+      method: "catch22"
+      normalize: true
+    resulting_injection_pressure:
+      use_series: false  # Skip this time series
+    state:
+      use_series: false
+      
+  injection_lower:
+    injection_pressure:
+      use_series: true
+      method: "paa" 
+      segments: 15
+      normalize: true
+    melt_volume:
+      use_series: true
+      method: "catch22"
+      normalize: false
+    injection_velocity:
+      use_series: false
+    injection_pressure_target:
+      use_series: true
+      method: "raw"
+      
+  screw_left:
+    torque:
+      use_series: true
+      method: "catch22"
+      normalize: true
+    angle:
+      use_series: true
+      method: "paa"
+      segments: 10
+      normalize: false
+    gradient:
+      use_series: false  # Skip gradient
+      
+  screw_right:
+    torque:
+      use_series: true
+      method: "tsfresh"
+      normalize: true
+    angle:
+      use_series: true
+      method: "paa"
+      segments: 12
+      normalize: true
+    gradient:
+      use_series: true
+      method: "catch22"
+      normalize: false

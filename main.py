@@ -5,7 +5,6 @@ experiment_data = ExperimentData(upper_workpiece_id=17401)
 
 experiment_data.screw_left.angle
 
-
 # %% Next steps
 
 # get cycle via txt file for injection molding class
