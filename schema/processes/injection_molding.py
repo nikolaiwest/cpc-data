@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 import pandas as pd
 
-from .base_data import BaseData
+from schema.experiment.base import BaseData
 
 
 class BaseInjectionMoldingCycle(BaseData):

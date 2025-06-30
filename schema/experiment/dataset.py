@@ -1,6 +1,8 @@
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
-from typing import List, Dict, Optional, Any
-from .experiment_data import ExperimentData
+
+from .data import ExperimentData
 
 
 class ExperimentDataset:

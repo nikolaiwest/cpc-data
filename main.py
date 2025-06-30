@@ -1,5 +1,4 @@
-from schema.experiment_data import ExperimentData
-from schema.experiment_dataset import ExperimentDataset
+from schema import ExperimentData, ExperimentDataset
 
 # Test individual experiment
 print("=== Testing Individual Experiment ===")
@@ -183,3 +182,8 @@ except Exception as e:
 
 print("\n" + "=" * 50)
 print("Testing complete! Check for any errors above.")
+
+
+# next step:
+
+# confirm max values in the csv/txt files for the injection molding classes.

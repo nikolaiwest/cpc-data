@@ -1,5 +1,8 @@
-from .injection_molding import UpperInjectionMoldingData, LowerInjectionMoldingData
-from .screw_driving import ScrewDrivingData
+from ..processes import (
+    LowerInjectionMoldingData,
+    ScrewDrivingData,
+    UpperInjectionMoldingData,
+)
 
 
 class ExperimentData:

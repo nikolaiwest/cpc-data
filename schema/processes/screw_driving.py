@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from .base_data import BaseData
+from schema.experiment.base import BaseData
 
 
 class ScrewDrivingData(BaseData):
