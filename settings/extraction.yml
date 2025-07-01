@@ -1,0 +1,100 @@
+# Extraction settings for feature engineering  
+
+injection_molding:
+
+  upper_workpiece:
+
+    injection_pressure_target:
+      use_series: true
+      method: "raw"  # options: "raw", "paa", "pca", "statistic", "tsfresh", "catch22"
+      # Additional attributes for the methods (available for all series)
+      paa_target_length: 200           # for paa method - target length after aggregation
+      pca_n_components: 24             # for pca method - number of principal components
+      use_catch24: true                # for catch22 method - include catch24 features (2 extra attributes)
+      tsfresh_feature_set: 'efficient' # for tsfresh method - 'minimal', 'efficient', 'comprehensive'
+     
+    injection_pressure_actual:
+      use_series: true
+      method: "raw" 
+
+    melt_volume:
+      use_series: true
+      method: "raw"
+      
+    injection_velocity:
+      use_series: true
+      method: "raw"
+
+    state: 
+      use_series: false # not used, since also not available for lower workpiece
+ 
+
+  lower_workpiece:
+
+    injection_pressure_target:
+      use_series: true
+      method: "raw" 
+
+    injection_pressure_actual:
+      use_series: true
+      method: "raw" 
+
+    melt_volume:
+      use_series: true
+      method: "raw"
+      
+    injection_velocity:
+      use_series: true
+      method: "raw"
+
+    state: 
+      use_series: false # not available for lower workpiece 
+
+
+
+screw_driving:
+  left:
+
+    torque:
+      use_series: true
+      method: "raw"  
+      
+    angle:
+      use_series: true
+      method: "raw"
+
+    gradient:
+      use_series: true
+      method: "raw"
+
+    time:
+      use_series: false  # Time axis, usually not used as feature
+      
+    torqueRed:
+      use_series: false  # Reduced/derived torque, skip by default
+      
+    angleRed:
+      use_series: false  # Reduced/derived angle, skip by default
+      
+  right:
+
+    torque:
+      use_series: true
+      method: "raw"  
+      
+    angle:
+      use_series: true
+      method: "raw"
+
+    gradient:
+      use_series: true
+      method: "raw"
+      
+    time:
+      use_series: false  # Time axis, usually not used as feature
+      
+    torqueRed:
+      use_series: false  # Reduced/derived torque, skip by default
+      
+    angleRed:
+      use_series: false  # Reduced/derived angle, skip by default

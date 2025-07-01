@@ -1,0 +1,206 @@
+# Processing settings for data preparation
+# Applied at individual data class level to clean and standardize time series
+
+injection_molding:
+  upper_workpiece:
+    injection_pressure_target:
+      remove_negative_values:
+        how: "zero"  # Options: "zero", "absolute", "clip", or any float value to substitute
+      apply_equal_distance:
+        target_distance: 0.0012  # target for equal distances between samples (in time units)
+      apply_equal_lengths:
+        target_length: 2000      # target number of samples
+        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
+        padding_val: 0.0         # value to use for padding
+        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
+          
+    injection_pressure_actual:
+      remove_negative_values:
+        how: "zero"
+      apply_equal_distance:
+        target_distance: 0.0012
+      apply_equal_lengths:
+        target_length: 2000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    melt_volume:
+      remove_negative_values: false  # Volume should always be positive, don't modify
+      apply_equal_distance:
+        target_distance: 0.0012
+      apply_equal_lengths:
+        target_length: 1500  # Shorter length for volume signal
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    injection_velocity:
+      remove_negative_values:
+        how: "absolute"  # Take absolute value - focus on magnitude
+      apply_equal_distance:
+        target_distance: 0.0012
+      apply_equal_lengths:
+        target_length: 1800
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    state:
+      remove_negative_values: false  # Not used
+      apply_equal_distance: false    # Not used
+      apply_equal_lengths: false     # Not used
+    
+  lower_workpiece:
+    injection_pressure_target:
+      remove_negative_values:
+        how: "zero"
+      apply_equal_distance:
+        target_distance: 0.0015  # Slightly different interval for lower workpiece
+      apply_equal_lengths:
+        target_length: 1800  # Different length for lower workpiece
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    injection_pressure_actual:
+      remove_negative_values:
+        how: "zero"
+      apply_equal_distance:
+        target_distance: 0.0015
+      apply_equal_lengths:
+        target_length: 1800
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    melt_volume:
+      remove_negative_values: false  # Volume should always be positive
+      apply_equal_distance:
+        target_distance: 0.0015
+      apply_equal_lengths:
+        target_length: 1200
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    injection_velocity:
+      remove_negative_values:
+        how: "absolute"
+      apply_equal_distance:
+        target_distance: 0.0015
+      apply_equal_lengths:
+        target_length: 1500
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    state:
+      remove_negative_values: false  # Not available for lower workpiece
+      apply_equal_distance: false
+      apply_equal_lengths: false
+
+screw_driving:
+  left:
+    torque:
+      remove_negative_values:
+        how: "clip"  # Clip negative torque values at 0.0
+        threshold: 0.0
+      apply_equal_distance:
+        target_distance: 0.001  # 1ms intervals for screw driving
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    angle:
+      remove_negative_values: false  # Angle can be negative (indicates direction)
+      apply_equal_distance:
+        target_distance: 0.001
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    gradient:
+      remove_negative_values: false  # Gradient can be negative
+      apply_equal_distance:
+        target_distance: 0.001
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    time:
+      remove_negative_values: false  # Time should not be negative anyway
+      apply_equal_distance: false    # Time axis doesn't need equal distance processing
+      apply_equal_lengths:           # But might need equal length
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    torqueRed:
+      remove_negative_values: false  # Not used by default
+      apply_equal_distance: false
+      apply_equal_lengths: false
+      
+    angleRed:
+      remove_negative_values: false  # Not used by default
+      apply_equal_distance: false
+      apply_equal_lengths: false
+    
+  right:
+    torque:
+      remove_negative_values:
+        how: "clip"
+        threshold: 0.0
+      apply_equal_distance:
+        target_distance: 0.001
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    angle:
+      remove_negative_values: false
+      apply_equal_distance:
+        target_distance: 0.001
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    gradient:
+      remove_negative_values: false
+      apply_equal_distance:
+        target_distance: 0.001
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    time:
+      remove_negative_values: false
+      apply_equal_distance: false
+      apply_equal_lengths:
+        target_length: 1000
+        cutoff_position: post
+        padding_val: 0.0
+        padding_pos: post
+        
+    torqueRed:
+      remove_negative_values: false  # Not used by default
+      apply_equal_distance: false
+      apply_equal_lengths: false
+      
+    angleRed:
+      remove_negative_values: false  # Not used by default
+      apply_equal_distance: false
+      apply_equal_lengths: false

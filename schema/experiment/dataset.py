@@ -8,7 +8,6 @@ from .data import ExperimentData
 class ExperimentDataset:
     """
     Collection of multiple experiments for cross-experiment analysis.
-    Enables PCA, correlation analysis, classification etc. across many manufacturing runs.
     """
 
     def __init__(self, experiments: List[ExperimentData] = None):
@@ -45,35 +44,13 @@ class ExperimentDataset:
                         - "class_value_lower_work_piece"
                         - "class_value_screw_driving"
             filter_type: How to filter:
-                        - "exact": Exact match (old behavior)
+                        - "exact": Exact match
                         - "contains": Values containing substring
                         - "list": Match any value in provided list
             filter_value: What to filter for:
                         - String for "exact" or "contains"
                         - List of strings for "list"
             sample_size: Optional limit on number of experiments to load
-
-        Examples:
-            # Get all glass fiber experiments
-            dataset = ExperimentDataset.from_class_values(
-                class_column="class_value_upper_work_piece",
-                filter_type="contains",
-                filter_value="glass_fiber_content"
-            )
-
-            # Get specific glass fiber percentages
-            dataset = ExperimentDataset.from_class_values(
-                class_column="class_value_upper_work_piece",
-                filter_type="list",
-                filter_value=["glass_fiber_content_22", "glass_fiber_content_24", "glass_fiber_content_26"]
-            )
-
-            # Get exact control group (old behavior)
-            dataset = ExperimentDataset.from_class_values(
-                class_column="class_value_upper_work_piece",
-                filter_type="exact",
-                filter_value="control_group_01"
-            )
         """
         df = pd.read_csv("data/class_values.csv", index_col=0)
 
@@ -116,107 +93,90 @@ class ExperimentDataset:
 
         return dataset
 
-    def get_data(
-        self,
-        method: str = "raw",
-        series_path: str = None,
-        config_path: str = None,
-        **kwargs,
-    ):
+    def get_data(self, config_path=None, config_dict=None, method="raw", **kwargs):
         """
-        Extract data from specified series across all experiments.
+        Extract data from all experiments and combine into DataFrame.
 
         Args:
-            method: Extraction method ("raw", "pca", "correlation", "features_matrix")
-            series_path: Path to series like "injection_upper.injection_pressure" (required for raw/pca)
-            config_path: Optional config file path
-            **kwargs: Method-specific parameters
+            config_path: Path to YAML config file
+            config_dict: Config dictionary (alternative to file)
+            method: Extraction method ("raw", "pca", etc.)
+            **kwargs: Parameters for extraction method
 
         Returns:
-            Dict or DataFrame with extracted data across experiments
+            pandas.DataFrame: Each row is an experiment, columns are features
         """
-        if method == "raw":
-            if not series_path:
-                raise ValueError("series_path is required for raw method")
-            return self._collect_raw_series(series_path)
-        elif method == "pca":
-            if not series_path:
-                raise ValueError("series_path is required for pca method")
-            return self._extract_pca(series_path, **kwargs)
-        elif method == "correlation":
-            return self._extract_correlation(**kwargs)
-        elif method == "features_matrix":
-            return self._extract_features_matrix(config_path, **kwargs)
-        else:
-            raise ValueError(f"Unknown cross-experiment method: {method}")
+        if method == "pca":
+            # PCA needs to be done at dataset level since it requires all data
+            return self._extract_pca(config_path, config_dict, **kwargs)
 
-    def _collect_raw_series(self, series_path: str):
-        """Collect raw time series data across all experiments."""
-        process_name, series_name = series_path.split(".")
-
-        all_series = []
+        # For other methods, aggregate experiment-level results
+        all_data = []
         experiment_ids = []
 
         for experiment in self.experiments:
-            process_obj = getattr(experiment, process_name, None)
-            if process_obj and hasattr(process_obj, series_name):
-                series_data = getattr(process_obj, series_name)
-                if series_data is not None:
-                    all_series.append(series_data)
-                    experiment_ids.append(experiment.upper_workpiece_id)
-
-        return {
-            "data": all_series,
-            "experiment_ids": experiment_ids,
-            "series_path": series_path,
-        }
-
-    def _extract_pca(self, series_path: str, components: int = 5, **kwargs):
-        """Placeholder for PCA across multiple time series."""
-        raw_data = self._collect_raw_series(series_path)
-        # TODO: Implement PCA feature extraction
-        return {
-            "method": "pca",
-            "components": components,
-            "series_path": series_path,
-            "n_experiments": len(raw_data["data"]),
-            "data": "placeholder_pca_features",
-        }
-
-    def _extract_correlation(self, series_pairs: List[List[str]] = None, **kwargs):
-        """Placeholder for cross-series correlation analysis."""
-        # TODO: Implement correlation analysis between different series
-        return {
-            "method": "correlation",
-            "series_pairs": series_pairs or [],
-            "data": "placeholder_correlation_matrix",
-        }
-
-    def _extract_features_matrix(self, config_path: str = None, **kwargs):
-        """Extract features from all experiments and create feature matrix."""
-        feature_matrix = []
-        experiment_ids = []
-
-        for experiment in self.experiments:
-            # Get features from each experiment using individual methods
-            features = experiment.get_data(config_path=config_path, **kwargs)
-            if features:
-                # Flatten features into single row
-                flattened = self._flatten_features(features)
-                feature_matrix.append(flattened)
+            exp_data = experiment.get_data(
+                config_path=config_path,
+                config_dict=config_dict,
+                method=method,
+                **kwargs,
+            )
+            if exp_data:  # Only include experiments with data
+                # Flatten the nested dict into a single row
+                flattened = self._flatten_experiment_data(exp_data)
+                all_data.append(flattened)
                 experiment_ids.append(experiment.upper_workpiece_id)
 
-        return {
-            "feature_matrix": feature_matrix,
-            "experiment_ids": experiment_ids,
-            "method": "features_matrix",
-        }
+        if not all_data:
+            return pd.DataFrame()  # Empty DataFrame if no data
 
-    def _flatten_features(self, features_dict: Dict):
-        """Flatten nested feature dictionary into single list."""
-        # TODO: Implement proper feature flattening
-        # This would concatenate all extracted features into one vector
-        return [0.0] * 100  # Placeholder
+        return pd.DataFrame(all_data, index=experiment_ids)
+
+    def _flatten_experiment_data(self, exp_data: Dict) -> Dict:
+        """
+        Flatten experiment data into a single dictionary for DataFrame row.
+
+        Args:
+            exp_data: Dict like {'injection_upper': {...}, 'screw_left': {...}}
+
+        Returns:
+            Dict with flattened keys like {'injection_upper_pressure_mean': 123, ...}
+        """
+        flattened = {}
+
+        for process_name, process_data in exp_data.items():
+            if process_data is not None:
+                if isinstance(process_data, dict):
+                    # Nested features - flatten with process prefix
+                    for feature_name, feature_value in process_data.items():
+                        if isinstance(feature_value, (list, tuple)):
+                            # Convert arrays to individual columns
+                            for i, val in enumerate(feature_value):
+                                flattened[f"{process_name}_{feature_name}_{i}"] = val
+                        else:
+                            # Scalar feature
+                            flattened[f"{process_name}_{feature_name}"] = feature_value
+                else:
+                    # Direct value
+                    flattened[process_name] = process_data
+
+        return flattened
+
+    def _extract_pca(self, config_path=None, config_dict=None, **kwargs):
+        """
+        Placeholder for PCA feature extraction across all experiments.
+
+        PCA needs to be done at dataset level since it requires the full data matrix
+        to compute principal components.
+        """
+        # TODO: Implement PCA
+        # 1. Get raw data from all experiments
+        # 2. Stack into matrix (experiments x features)
+        # 3. Apply PCA transformation
+        # 4. Return transformed features as DataFrame
+
+        print("PCA extraction not yet implemented")
+        return pd.DataFrame()
 
     def get_class_labels(self, label_column: str = "class_value_upper_work_piece"):
         """Get class labels for all experiments in dataset."""
