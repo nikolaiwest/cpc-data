@@ -99,8 +99,8 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
             return None
         return {
             "time_series": self.time_series,
-            "injection_pressure": self.injection_pressure,
-            "resulting_injection_pressure": self.resulting_injection_pressure,
+            "injection_pressure_target": self.injection_pressure_target,
+            "injection_pressure_actual": self.injection_pressure_actual,
             "melt_volume": self.melt_volume,
             "injection_velocity": self.injection_velocity,
             "state": self.state,
@@ -113,8 +113,8 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
         # Set time series attributes
         self.time_series = df_cycle["time"]
-        self.injection_pressure = df_cycle["injection_pressure"]
-        self.resulting_injection_pressure = df_cycle["resulting_injection_pressure"]
+        self.injection_pressure_target = df_cycle["injection_pressure_target"]
+        self.injection_pressure_actual = df_cycle["injection_pressure_actual"]
         self.melt_volume = df_cycle["melt_volume"]
         self.injection_velocity = df_cycle["injection_velocity"]
         self.state = df_cycle["state"]
@@ -122,8 +122,8 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
     def _get_cycle_attributes(self):
         return [
             "time_series",
-            "injection_pressure",
-            "resulting_injection_pressure",
+            "injection_pressure_target",
+            "injection_pressure_actual",
             "melt_volume",
             "injection_velocity",
             "state",
@@ -144,8 +144,8 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
             return None
         return {
             "time_series": self.time_series,
-            "injection_pressure": self.injection_pressure,
             "injection_pressure_target": self.injection_pressure_target,
+            "injection_pressure_actual": self.injection_pressure_actual,
             "melt_volume": self.melt_volume,
             "injection_velocity": self.injection_velocity,
         }
@@ -190,8 +190,8 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
         # Set time series attributes (mapping to similar names as upper)
         self.time_series = df_cycle["time"]
-        self.injection_pressure = df_cycle["injection_pressure_actual"]
         self.injection_pressure_target = df_cycle["injection_pressure_target"]
+        self.injection_pressure_actual = df_cycle["injection_pressure_actual"]
         self.melt_volume = df_cycle["screw_volume"]  # Similar concept
         self.injection_velocity = df_cycle["injection_flow"]  # Similar concept
 

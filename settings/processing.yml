@@ -103,16 +103,14 @@ injection_molding:
 screw_driving:
   left:
     torque:
-      remove_negative_values:
-        how: "clip"  # Clip negative torque values at 0.0
-        threshold: 0.0
-      apply_equal_distance:
-        target_distance: 0.001  # 1ms intervals for screw driving
+      remove_negative_values: false
+      apply_equal_distance: false
       apply_equal_lengths:
-        target_length: 1000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
+        target_length: 500      # TEST: Standardize torque to 500 samples
+        cutoff_position: post   # Cut from end if too long
+        padding_val: 0.0        # Pad with zeros if too short
+        padding_pos: post       # Pad at end
+          
         
     angle:
       remove_negative_values: false  # Angle can be negative (indicates direction)

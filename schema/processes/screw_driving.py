@@ -1,9 +1,9 @@
 import json
-import os
 
 import pandas as pd
 
 from schema.experiment.base import BaseData
+from settings import get_processing_settings
 
 
 class ScrewDrivingData(BaseData):
@@ -71,29 +71,132 @@ class ScrewDrivingData(BaseData):
         steps_data = json_data.get("tightening steps", [])
 
         # Combine measurements from all steps
-        all_time = []
-        all_torque = []
-        all_angle = []
-        all_gradient = []
+        raw_time = []
+        raw_torque = []
+        raw_angle = []
+        raw_gradient = []
 
         for step_data in steps_data:
             graph = step_data.get("graph", {})
 
             # Extend lists with data from this step
-            all_time.extend(graph.get("time values", []))
-            all_torque.extend(graph.get("torque values", []))
-            all_angle.extend(graph.get("angle values", []))
-            all_gradient.extend(graph.get("gradient values", []))
+            raw_time.extend(graph.get("time values", []))
+            raw_torque.extend(graph.get("torque values", []))
+            raw_angle.extend(graph.get("angle values", []))
+            raw_gradient.extend(graph.get("gradient values", []))
 
-        # Set time series attributes
-        self.time_series = all_time
-        self.torque = all_torque
-        self.angle = all_angle
-        self.gradient = all_gradient
+        # Create raw time series dict
+        raw_series = {
+            "time": raw_time,
+            "torque": raw_torque,
+            "angle": raw_angle,
+            "gradient": raw_gradient,
+            # Add the reduced signals (if they exist in the data)
+            "torqueRed": [],  # Would be populated from JSON if available
+            "angleRed": [],  # Would be populated from JSON if available
+        }
+
+        # Apply processing to each time series
+        processed_series = self._apply_processing(raw_series)
+
+        # Set time series attributes with processed data
+        self.time_series = processed_series["time"]
+        self.torque = processed_series["torque"]
+        self.angle = processed_series["angle"]
+        self.gradient = processed_series["gradient"]
+        self.torqueRed = processed_series["torqueRed"]
+        self.angleRed = processed_series["angleRed"]
 
         # Store individual steps for potential detailed analysis
         self.steps_count = len(steps_data)
         self.steps_names = [step.get("name", "") for step in steps_data]
+
+    def _apply_processing(self, raw_series):
+        """Apply processing settings to all time series"""
+        try:
+            # Load processing settings
+            processing_settings = get_processing_settings()
+            screw_settings = processing_settings.get("screw_driving", {}).get(
+                self.position, {}
+            )
+
+            processed_series = {}
+
+            for series_name, series_data in raw_series.items():
+                # Get settings for this specific series
+                series_settings = screw_settings.get(series_name, {})
+
+                # Apply processing steps in order
+                processed_data = series_data.copy()
+
+                # Step 1: Handle negative values (not implemented in this example)
+                # processed_data = self._process_negative_values(processed_data, series_settings)
+
+                # Step 2: Apply equal distance (not implemented in this example)
+                # processed_data = self._process_equal_distance(processed_data, series_settings)
+
+                # Step 3: Apply equal lengths
+                processed_data = self._process_equal_lengths(
+                    processed_data, series_settings, series_name
+                )
+
+                processed_series[series_name] = processed_data
+
+            return processed_series
+
+        except Exception as e:
+            print(
+                f"Warning: Processing failed for {self.position} screw driving data: {e}"
+            )
+            # Return raw data if processing fails
+            return raw_series
+
+    def _process_equal_lengths(self, series_data, series_settings, series_name):
+        """Apply equal length processing to a time series"""
+        equal_length_settings = series_settings.get("apply_equal_lengths", False)
+
+        # If processing is disabled, return original data
+        if not equal_length_settings:
+            return series_data
+
+        # Extract parameters
+        target_length = equal_length_settings.get("target_length", 1000)
+        cutoff_position = equal_length_settings.get("cutoff_position", "post")
+        padding_val = equal_length_settings.get("padding_val", 0.0)
+        padding_pos = equal_length_settings.get("padding_pos", "post")
+
+        current_length = len(series_data)
+
+        print(
+            f"Processing {series_name} ({self.position}): {current_length} -> {target_length} samples"
+        )
+
+        # If already the right length, return as-is
+        if current_length == target_length:
+            return series_data
+
+        # If too long, cut to target length
+        elif current_length > target_length:
+            if cutoff_position == "pre":
+                # Cut from beginning
+                processed_data = series_data[-target_length:]
+            else:  # 'post'
+                # Cut from end
+                processed_data = series_data[:target_length]
+
+        # If too short, pad to target length
+        else:
+            padding_needed = target_length - current_length
+            padding = [padding_val] * padding_needed
+
+            if padding_pos == "pre":
+                # Pad at beginning
+                processed_data = padding + series_data
+            else:  # 'post'
+                # Pad at end
+                processed_data = series_data + padding
+
+        return processed_data
 
     def _set_none_attributes(self):
         """Set all attributes to None when no metadata found"""
@@ -113,6 +216,8 @@ class ScrewDrivingData(BaseData):
         self.torque = None
         self.angle = None
         self.gradient = None
+        self.torqueRed = None
+        self.angleRed = None
         self.steps_count = None
         self.steps_names = None
 
@@ -125,10 +230,12 @@ class ScrewDrivingData(BaseData):
         if self.time_series is None:
             return None
         return {
-            "time_series": self.time_series,
+            "time": self.time_series,
             "torque": self.torque,
             "angle": self.angle,
             "gradient": self.gradient,
+            "torqueRed": self.torqueRed,
+            "angleRed": self.angleRed,
         }
 
     def get_measurements(self):
