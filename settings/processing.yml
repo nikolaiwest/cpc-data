@@ -106,7 +106,7 @@ screw_driving:
       remove_negative_values: false
       apply_equal_distance: false
       apply_equal_lengths:
-        target_length: 500      # TEST: Standardize torque to 500 samples
+        target_length: 2000      # TEST: Standardize torque to 500 samples
         cutoff_position: post   # Cut from end if too long
         padding_val: 0.0        # Pad with zeros if too short
         padding_pos: post       # Pad at end
@@ -117,7 +117,7 @@ screw_driving:
       apply_equal_distance:
         target_distance: 0.001
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -127,7 +127,7 @@ screw_driving:
       apply_equal_distance:
         target_distance: 0.001
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -136,7 +136,7 @@ screw_driving:
       remove_negative_values: false  # Time should not be negative anyway
       apply_equal_distance: false    # Time axis doesn't need equal distance processing
       apply_equal_lengths:           # But might need equal length
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -159,7 +159,7 @@ screw_driving:
       apply_equal_distance:
         target_distance: 0.001
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -169,7 +169,7 @@ screw_driving:
       apply_equal_distance:
         target_distance: 0.001
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -179,7 +179,7 @@ screw_driving:
       apply_equal_distance:
         target_distance: 0.001
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -188,7 +188,7 @@ screw_driving:
       remove_negative_values: false
       apply_equal_distance: false
       apply_equal_lengths:
-        target_length: 1000
+        target_length: 2000
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post

@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
 from ..processes import (
     LowerInjectionMoldingData,
     ScrewDrivingData,
@@ -57,6 +60,180 @@ class ExperimentData:
                     results[process_name] = process_data
 
         return results
+
+    def plot_data(self, figsize=(15, 10), save_path=None, show_plot=True):
+        """
+        Create a 2x2 plot showing all time series data from all 4 processes.
+
+        Layout:
+        - Top Left: Upper Injection Molding
+        - Top Right: Lower Injection Molding
+        - Bottom Left: Left Screw Driving
+        - Bottom Right: Right Screw Driving
+
+        Args:
+            figsize: Figure size (width, height)
+            save_path: Optional path to save the plot
+            show_plot: Whether to display the plot
+
+        Returns:
+            matplotlib.figure.Figure: The created figure
+        """
+
+        # Create 2x2 subplot layout
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
+        fig.suptitle(
+            f"Experiment {self.upper_workpiece_id} - All Process Data",
+            fontsize=16,
+            fontweight="bold",
+        )
+
+        # Plot upper injection molding (top left)
+        self._plot_injection_molding(
+            axes[0, 0], self.injection_upper, "Upper Injection Molding"
+        )
+
+        # Plot lower injection molding (top right)
+        self._plot_injection_molding(
+            axes[0, 1], self.injection_lower, "Lower Injection Molding"
+        )
+
+        # Plot left screw driving (bottom left)
+        self._plot_screw_driving(axes[1, 0], self.screw_left, "Left Screw Driving")
+
+        # Plot right screw driving (bottom right)
+        self._plot_screw_driving(axes[1, 1], self.screw_right, "Right Screw Driving")
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+
+        # Save if requested
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            print(f"Plot saved to: {save_path}")
+
+        # Show if requested
+        if show_plot:
+            plt.show()
+
+        return fig
+
+    def _plot_injection_molding(self, ax, injection_data, title):
+        """Plot injection molding time series on given axis"""
+
+        if injection_data is None or injection_data.time_series is None:
+            ax.text(
+                0.5,
+                0.5,
+                "No Data Available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
+            ax.set_title(title)
+            return
+
+        # Use sample count as x-axis instead of time values
+        # This way padding doesn't affect the visualization
+
+        # Plot all available time series
+        series_to_plot = [
+            ("injection_pressure_target", "Pressure Target", "blue"),
+            ("injection_pressure_actual", "Pressure Actual", "red"),
+            ("melt_volume", "Melt Volume", "green"),
+            ("injection_velocity", "Velocity", "orange"),
+        ]
+
+        for attr_name, label, color in series_to_plot:
+            if hasattr(injection_data, attr_name):
+                series_data = getattr(injection_data, attr_name)
+                if series_data is not None and len(series_data) > 0:
+                    # Use sample index as x-axis (0, 1, 2, 3, ...)
+                    sample_axis = np.arange(len(series_data))
+                    ax.plot(
+                        sample_axis, series_data, label=label, color=color, alpha=0.7
+                    )
+
+        ax.set_title(title, fontweight="bold")
+        ax.set_xlabel("Sample Count")
+        ax.set_ylabel("Values")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+
+    def _plot_screw_driving(self, ax, screw_data, title):
+        """Plot screw driving time series with angle on secondary y-axis"""
+
+        if screw_data is None or screw_data.time_series is None:
+            ax.text(
+                0.5,
+                0.5,
+                "No Data Available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
+            ax.set_title(title)
+            return
+
+        # Use sample count as x-axis instead of time values
+        # This way padding doesn't affect the visualization
+
+        # Plot torque and gradient on primary (left) y-axis
+        primary_series = [
+            ("torque", "Torque", "red"),
+            ("gradient", "Gradient", "green"),
+        ]
+
+        lines_plotted = []
+        labels_plotted = []
+
+        for attr_name, label, color in primary_series:
+            if hasattr(screw_data, attr_name):
+                series_data = getattr(screw_data, attr_name)
+                if series_data is not None and len(series_data) > 0:
+                    # Use sample index as x-axis (0, 1, 2, 3, ...)
+                    sample_axis = np.arange(len(series_data))
+                    line = ax.plot(
+                        sample_axis, series_data, label=label, color=color, alpha=0.7
+                    )
+                    lines_plotted.extend(line)
+                    labels_plotted.append(label)
+
+        # Set primary axis properties
+        ax.set_xlabel("Sample Count")
+        ax.set_ylabel("Torque / Gradient", color="black")
+        ax.tick_params(axis="y", labelcolor="black")
+
+        # Create secondary y-axis (right side) for angle
+        ax2 = ax.twinx()
+
+        # Plot angle on secondary (right) y-axis
+        if hasattr(screw_data, "angle"):
+            angle_data = getattr(screw_data, "angle")
+            if angle_data is not None and len(angle_data) > 0:
+                # Use sample index as x-axis
+                sample_axis = np.arange(len(angle_data))
+                line2 = ax2.plot(
+                    sample_axis,
+                    angle_data,
+                    label="Angle",
+                    color="blue",
+                    alpha=0.7,
+                    linestyle="--",
+                )
+                lines_plotted.extend(line2)
+                labels_plotted.append("Angle")
+
+        # Set secondary axis properties
+        ax2.set_ylabel("Angle", color="blue")
+        ax2.tick_params(axis="y", labelcolor="blue")
+
+        # Combined legend for both y-axes
+        if lines_plotted:
+            ax.legend(lines_plotted, labels_plotted, loc="upper left", fontsize=8)
+
+        ax.set_title(title, fontweight="bold")
+        ax.grid(True, alpha=0.3)
 
     def _get_selected_processes(self, processes):
         """Get dictionary of selected process objects."""
