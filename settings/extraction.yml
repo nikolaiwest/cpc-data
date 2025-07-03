@@ -4,6 +4,11 @@ injection_molding:
 
   upper_workpiece:
 
+    # Metadata extraction configuration
+    meta:
+      use_data: true
+      method: "all" 
+
     injection_pressure_target:
       use_series: true
       method: "raw"  # options: "raw", "paa", "pca", "statistic", "tsfresh", "catch22"
@@ -31,6 +36,11 @@ injection_molding:
 
   lower_workpiece:
 
+    # Metadata extraction configuration
+    meta:
+      use_data: true
+      method: "all" 
+
     injection_pressure_target:
       use_series: true
       method: "raw" 
@@ -51,10 +61,24 @@ injection_molding:
       use_series: false # not available for lower workpiece 
 
 
-
 screw_driving:
+  
   left:
+    # Metadata extraction configuration
+    meta:
+      use_data: true
+      method: "all"  # Options: "all", "process_params", "quality_indicators", "tool_info", "timing", "custom"
+      
+      # For custom method, specify exact fields to extract
+      custom_fields:
+        - "nominal torque"
+        - "total time"
+        - "quality code"
+        - "tool serial"
+        - "speed"
+        - "cycle"
 
+    # Time series extraction (existing functionality)
     torque:
       use_series: true
       method: "raw"  
@@ -77,7 +101,12 @@ screw_driving:
       use_series: false  # Reduced/derived angle, skip by default
       
   right:
-
+    # Metadata extraction configuration
+    meta:
+      use_data: true
+      method: "all" 
+      
+    # Time series extraction
     torque:
       use_series: true
       method: "raw"  
