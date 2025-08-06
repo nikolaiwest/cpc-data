@@ -19,14 +19,21 @@ class BaseInjectionMoldingCycle(BaseData):
     def _load_metadata(self):
         """Load metadata from CSV file. Returns True if found, False if not."""
         csv_path = self._get_metadata_path()
-        df_meta = pd.read_csv(csv_path, index_col=0, sep=";")
+        # No index_col=0, get default numeric index
+        df_meta = pd.read_csv(csv_path, sep=";")
 
-        # Check if ID exists
-        if self.upper_workpiece_id not in df_meta.index:
+        # Check for the ID in the upper_workpiece_id column (handle both int and string)
+        target_id = self.upper_workpiece_id
+        matching_rows = df_meta[
+            (df_meta["upper_workpiece_id"] == target_id)
+            | (df_meta["upper_workpiece_id"] == str(target_id))
+        ]
+
+        if matching_rows.empty:
             return False
 
-        # Get row for this workpiece
-        meta = df_meta.loc[self.upper_workpiece_id]
+        # Get the first matching row
+        meta = matching_rows.iloc[0]
 
         # True metadata attributes
         self.file_name = meta["file_name"]
