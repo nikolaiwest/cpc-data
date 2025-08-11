@@ -142,7 +142,7 @@ class ExperimentData:
         return fig
 
     def _plot_injection_molding(self, ax, injection_data, title):
-        """Plot injection molding time series on given axis"""
+        """Plot injection molding time series with dual y-axes for pressures vs other series"""
 
         if injection_data is None or injection_data.time_series is None:
             ax.text(
@@ -159,28 +159,67 @@ class ExperimentData:
         # Use sample count as x-axis instead of time values
         # This way padding doesn't affect the visualization
 
-        # Plot all available time series
-        series_to_plot = [
-            ("injection_pressure_target", "Pressure Target", "blue"),
-            ("injection_pressure_actual", "Pressure Actual", "red"),
+        lines_plotted = []
+        labels_plotted = []
+
+        # Plot non-pressure series on primary (left) y-axis
+        primary_series = [
             ("melt_volume", "Melt Volume", "green"),
             ("injection_velocity", "Velocity", "orange"),
         ]
 
-        for attr_name, label, color in series_to_plot:
+        for attr_name, label, color in primary_series:
             if hasattr(injection_data, attr_name):
                 series_data = getattr(injection_data, attr_name)
                 if series_data is not None and len(series_data) > 0:
                     # Use sample index as x-axis (0, 1, 2, 3, ...)
                     sample_axis = np.arange(len(series_data))
-                    ax.plot(
+                    line = ax.plot(
                         sample_axis, series_data, label=label, color=color, alpha=0.7
                     )
+                    lines_plotted.extend(line)
+                    labels_plotted.append(label)
+
+        # Set primary axis properties
+        ax.set_xlabel("Sample Count")
+        ax.set_ylabel("Volume / Velocity", color="black")
+        ax.tick_params(axis="y", labelcolor="black")
+
+        # Create secondary y-axis (right side) for both pressures
+        ax2 = ax.twinx()
+
+        # Plot both pressure series on secondary (right) y-axis
+        pressure_series = [
+            ("injection_pressure_target", "Pressure Target", "blue", "-"),
+            ("injection_pressure_actual", "Pressure Actual", "red", "--"),
+        ]
+
+        for attr_name, label, color, linestyle in pressure_series:
+            if hasattr(injection_data, attr_name):
+                pressure_data = getattr(injection_data, attr_name)
+                if pressure_data is not None and len(pressure_data) > 0:
+                    # Use sample index as x-axis
+                    sample_axis = np.arange(len(pressure_data))
+                    line2 = ax2.plot(
+                        sample_axis,
+                        pressure_data,
+                        label=label,
+                        color=color,
+                        alpha=0.7,
+                        linestyle=linestyle,
+                    )
+                    lines_plotted.extend(line2)
+                    labels_plotted.append(label)
+
+        # Set secondary axis properties
+        ax2.set_ylabel("Pressure", color="darkblue")
+        ax2.tick_params(axis="y", labelcolor="darkblue")
+
+        # Combined legend for both y-axes
+        if lines_plotted:
+            ax.legend(lines_plotted, labels_plotted, loc="upper left", fontsize=8)
 
         ax.set_title(title, fontweight="bold")
-        ax.set_xlabel("Sample Count")
-        ax.set_ylabel("Values")
-        ax.legend(fontsize=8)
         ax.grid(True, alpha=0.3)
 
     def _plot_screw_driving(self, ax, screw_data, title):
@@ -257,40 +296,6 @@ class ExperimentData:
 
         ax.set_title(title, fontweight="bold")
         ax.grid(True, alpha=0.3)
-
-    def _get_selected_processes(self, processes):
-        """Get dictionary of selected process objects."""
-        all_processes = {
-            "injection_upper": self.injection_upper,
-            "injection_lower": self.injection_lower,
-            "screw_left": self.screw_left,
-            "screw_right": self.screw_right,
-        }
-
-        if processes == "all":
-            return all_processes
-        elif isinstance(processes, list):
-            return {
-                name: all_processes[name] for name in processes if name in all_processes
-            }
-        else:
-            raise ValueError("processes must be 'all' or list of process names")
-
-    def get_available_processes(self):
-        """Return list of processes that have data available."""
-        available = []
-        processes = {
-            "injection_upper": self.injection_upper,
-            "injection_lower": self.injection_lower,
-            "screw_left": self.screw_left,
-            "screw_right": self.screw_right,
-        }
-
-        for name, process in processes.items():
-            if hasattr(process, "file_name") and process.file_name is not None:
-                available.append(name)
-
-        return available
 
     def __repr__(self):
         available = self.get_available_processes()
