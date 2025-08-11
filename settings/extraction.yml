@@ -7,7 +7,7 @@ injection_molding:
     # Metadata extraction configuration
     meta:
       use_data: true
-      method: "all" 
+      method: "all" # or from a list ["param_name_1", "param_name_2"]
 
     injection_pressure_target:
       use_series: true
@@ -67,7 +67,7 @@ screw_driving:
     # Metadata extraction configuration
     meta:
       use_data: true
-      method: "all"  # Options: "all", "process_params", "quality_indicators", "tool_info", "timing", "custom"
+      method: "all"  # Options: null, "all", "process_params", "quality_indicators", "tool_info", "timing", "custom"
       
       # For custom method, specify exact fields to extract
       custom_fields:

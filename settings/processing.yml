@@ -5,46 +5,47 @@ injection_molding:
   upper_workpiece:
     injection_pressure_target:
       remove_negative_values:
-        how: "zero"  # Options: "zero", "absolute", "clip", or any float value to substitute
+        how: null  # dont remove negative values in injection molding!
       apply_equal_distance:
-        target_distance: 0.0012  # target for equal distances between samples (in time units)
+        target_distance: 0.0012  # not requried? check for injection modling 
       apply_equal_lengths:
-        target_length: 2000      # target number of samples
+        target_length: 2048      # four times 512 windows: target number of samples
         cutoff_position: post    # 'pre', 'post' - where to cut if series too long
         padding_val: 0.0         # value to use for padding
         padding_pos: post        # 'pre', 'post' - where to add padding if series too short
           
     injection_pressure_actual:
       remove_negative_values:
-        how: "zero"
+        how: null  # dont remove negative values in injection molding!
       apply_equal_distance:
-        target_distance: 0.0012
+        target_distance: 0.0012  # not requried? check for injection modling 
       apply_equal_lengths:
-        target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
+        target_length: 2048      # four times 512 windows: target number of samples
+        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
+        padding_val: 0.0         # value to use for padding
+        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
         
     melt_volume:
-      remove_negative_values: false  # Volume should always be positive, don't modify
+      remove_negative_values:
+        how: null  # dont remove negative values in injection molding!
       apply_equal_distance:
-        target_distance: 0.0012
+        target_distance: 0.0012  # not requried? check for injection modling 
       apply_equal_lengths:
-        target_length: 1500  # Shorter length for volume signal
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
+        target_length: 2048      # four times 512 windows: target number of samples
+        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
+        padding_val: 0.0         # value to use for padding
+        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
         
     injection_velocity:
       remove_negative_values:
-        how: "absolute"  # Take absolute value - focus on magnitude
+        how: null  # dont remove negative values in injection molding!
       apply_equal_distance:
-        target_distance: 0.0012
+        target_distance: 0.0012  # not requried? check for injection modling 
       apply_equal_lengths:
-        target_length: 1800
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
+        target_length: 2048      # four times 512 windows: target number of samples
+        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
+        padding_val: 0.0         # value to use for padding
+        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
         
     state:
       remove_negative_values: false  # Not used
@@ -54,22 +55,22 @@ injection_molding:
   lower_workpiece:
     injection_pressure_target:
       remove_negative_values:
-        how: "zero"
+        how: null # dont remove negative values... 
       apply_equal_distance:
-        target_distance: 0.0015  # Slightly different interval for lower workpiece
+        target_distance: null  # double check time index for both... 
       apply_equal_lengths:
-        target_length: 1800  # Different length for lower workpiece
+        target_length: 512  # double check max lengths
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
         
     injection_pressure_actual:
       remove_negative_values:
-        how: "zero"
+        how: null # dont remove negative values... 
       apply_equal_distance:
-        target_distance: 0.0015
+        target_distance: null  # double check time index for both... 
       apply_equal_lengths:
-        target_length: 1800
+        target_length: 512  # double check max lengths
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
@@ -79,23 +80,23 @@ injection_molding:
       apply_equal_distance:
         target_distance: 0.0015
       apply_equal_lengths:
-        target_length: 1200
+        target_length: 512
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
         
     injection_velocity:
       remove_negative_values:
-        how: "absolute"
+        how: null # dont remove negative values... 
       apply_equal_distance:
-        target_distance: 0.0015
+        target_distance: null  # double check time index for both... 
       apply_equal_lengths:
-        target_length: 1500
+        target_length: 512  # double check max lengths
         cutoff_position: post
         padding_val: 0.0
         padding_pos: post
         
-    state:
+    state: # only existent for upper workpiece 
       remove_negative_values: false  # Not available for lower workpiece
       apply_equal_distance: false
       apply_equal_lengths: false
@@ -106,7 +107,7 @@ screw_driving:
       remove_negative_values: false
       apply_equal_distance: false
       apply_equal_lengths:
-        target_length: 2000      # TEST: Standardize torque to 500 samples
+        target_length: 2000     # TEST: Standardize torque to 500 samples
         cutoff_position: post   # Cut from end if too long
         padding_val: 0.0        # Pad with zeros if too short
         padding_pos: post       # Pad at end

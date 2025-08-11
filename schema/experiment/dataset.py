@@ -93,34 +93,19 @@ class ExperimentDataset:
 
         return dataset
 
-    def get_data(self, config_path=None, config_dict=None, method="raw", **kwargs):
+    def get_data(self):
         """
         Extract data from all experiments and combine into DataFrame.
-
-        Args:
-            config_path: Path to YAML config file
-            config_dict: Config dictionary (alternative to file)
-            method: Extraction method ("raw", "pca", etc.)
-            **kwargs: Parameters for extraction method
 
         Returns:
             pandas.DataFrame: Each row is an experiment, columns are features
         """
-        if method == "pca":
-            # PCA needs to be done at dataset level since it requires all data
-            return self._extract_pca(config_path, config_dict, **kwargs)
-
-        # For other methods, aggregate experiment-level results
+        # Aggregate experiment-level results
         all_data = []
         experiment_ids = []
 
         for experiment in self.experiments:
-            exp_data = experiment.get_data(
-                config_path=config_path,
-                config_dict=config_dict,
-                method=method,
-                **kwargs,
-            )
+            exp_data = experiment.get_data()  # Use new simplified interface
             if exp_data:  # Only include experiments with data
                 # Flatten the nested dict into a single row
                 flattened = self._flatten_experiment_data(exp_data)
@@ -136,68 +121,52 @@ class ExperimentDataset:
         """
         Flatten experiment data into a single dictionary for DataFrame row.
 
-        Args:
-            exp_data: Dict like {'injection_upper': {...}, 'screw_left': {...}}
+        Takes nested structure like:
+        {
+            'injection_upper': {'injection_pressure_target': [...], 'melt_volume': [...]},
+            'screw_left': {'torque': [...], 'angle': [...]}
+        }
 
-        Returns:
-            Dict with flattened keys like {'injection_upper_pressure_mean': 123, ...}
+        And flattens to:
+        {
+            'injection_upper.injection_pressure_target': [...],
+            'injection_upper.melt_volume': [...],
+            'screw_left.torque': [...],
+            'screw_left.angle': [...]
+        }
         """
         flattened = {}
 
         for process_name, process_data in exp_data.items():
-            if process_data is not None:
-                if isinstance(process_data, dict):
-                    # Nested features - flatten with process prefix
-                    for feature_name, feature_value in process_data.items():
-                        if isinstance(feature_value, (list, tuple)):
-                            # Convert arrays to individual columns
-                            for i, val in enumerate(feature_value):
-                                flattened[f"{process_name}_{feature_name}_{i}"] = val
-                        else:
-                            # Scalar feature
-                            flattened[f"{process_name}_{feature_name}"] = feature_value
-                else:
-                    # Direct value
-                    flattened[process_name] = process_data
+            if isinstance(process_data, dict):
+                for series_name, series_data in process_data.items():
+                    key = f"{process_name}.{series_name}"
+                    flattened[key] = series_data
+            else:
+                # If process_data is not a dict, store it directly
+                flattened[process_name] = process_data
 
         return flattened
 
-    def _extract_pca(self, config_path=None, config_dict=None, **kwargs):
-        """
-        Placeholder for PCA feature extraction across all experiments.
-
-        PCA needs to be done at dataset level since it requires the full data matrix
-        to compute principal components.
-        """
-        # TODO: Implement PCA
-        # 1. Get raw data from all experiments
-        # 2. Stack into matrix (experiments x features)
-        # 3. Apply PCA transformation
-        # 4. Return transformed features as DataFrame
-
-        print("PCA extraction not yet implemented")
-        return pd.DataFrame()
-
-    def get_class_labels(self, label_column: str = "class_value_upper_work_piece"):
-        """Get class labels for all experiments in dataset."""
-        if self.class_values_df is None:
-            return None
-
+    def get_class_labels(self):
+        """Return class labels for all experiments in the dataset."""
         labels = []
         for experiment in self.experiments:
-            row = self.class_values_df[
-                self.class_values_df["upper_workpiece_id"]
-                == experiment.upper_workpiece_id
-            ]
-            if not row.empty and label_column in row.columns:
-                labels.append(row[label_column].iloc[0])
+            # Try to get class label from injection_upper first
+            if hasattr(experiment.injection_upper, "class_value"):
+                labels.append(experiment.injection_upper.class_value)
+            elif hasattr(experiment.injection_lower, "class_value"):
+                labels.append(experiment.injection_lower.class_value)
+            elif hasattr(experiment.screw_left, "class_value"):
+                labels.append(experiment.screw_left.class_value)
+            elif hasattr(experiment.screw_right, "class_value"):
+                labels.append(experiment.screw_right.class_value)
             else:
                 labels.append(None)
-
         return labels
 
     def get_experiment_info(self):
-        """Get summary information about the dataset."""
+        """Return summary information about the experiments in this dataset."""
         available_processes = {}
         for experiment in self.experiments:
             for process in experiment.get_available_processes():

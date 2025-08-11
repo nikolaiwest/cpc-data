@@ -98,7 +98,7 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
         return "data/injection_molding/upper_workpiece/meta_data.csv"
 
     def _get_class_name(self):
-        return "injection_upper"
+        return "injection_molding.upper_workpiece"
 
     def _get_time_series_data(self):
         """Return dict of time series data for upper injection molding."""
@@ -114,17 +114,30 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
         }
 
     def _load_cycle_data(self):
-        """Load time series data from CSV file"""
+        """Load time series data from CSV file and apply processing"""
         csv_path = f"data/injection_molding/upper_workpiece/raw_data/{self.file_name}"
         df_cycle = pd.read_csv(csv_path, index_col=0)
 
-        # Set time series attributes
-        self.time_series = df_cycle["time"]
-        self.injection_pressure_target = df_cycle["injection_pressure_target"]
-        self.injection_pressure_actual = df_cycle["injection_pressure_actual"]
-        self.melt_volume = df_cycle["melt_volume"]
-        self.injection_velocity = df_cycle["injection_velocity"]
-        self.state = df_cycle["state"]
+        # Create raw time series dict
+        raw_series = {
+            "time_series": df_cycle["time"].tolist(),
+            "injection_pressure_target": df_cycle["injection_pressure_target"].tolist(),
+            "injection_pressure_actual": df_cycle["injection_pressure_actual"].tolist(),
+            "melt_volume": df_cycle["melt_volume"].tolist(),
+            "injection_velocity": df_cycle["injection_velocity"].tolist(),
+            "state": df_cycle["state"].tolist(),
+        }
+
+        # Apply processing using BaseData method
+        processed_series = self._apply_processing(raw_series)
+
+        # Set time series attributes with processed data
+        self.time_series = processed_series["time_series"]
+        self.injection_pressure_target = processed_series["injection_pressure_target"]
+        self.injection_pressure_actual = processed_series["injection_pressure_actual"]
+        self.melt_volume = processed_series["melt_volume"]
+        self.injection_velocity = processed_series["injection_velocity"]
+        self.state = processed_series["state"]
 
     def _get_cycle_attributes(self):
         return [
@@ -143,7 +156,7 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
         return "data/injection_molding/lower_workpiece/meta_data.csv"
 
     def _get_class_name(self):
-        return "injection_lower"
+        return "injection_molding.lower_workpiece"
 
     def _get_time_series_data(self):
         """Return dict of time series data for lower injection molding."""
@@ -158,7 +171,7 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
         }
 
     def _load_cycle_data(self):
-        """Load time series data from TXT file with special format"""
+        """Load time series data from TXT file, apply processing"""
         txt_path = f"data/injection_molding/lower_workpiece/raw_data/{self.file_name}"
 
         # Read the file and find the data section
@@ -195,18 +208,32 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
             ],
         )
 
-        # Set time series attributes (mapping to similar names as upper)
-        self.time_series = df_cycle["time"]
-        self.injection_pressure_target = df_cycle["injection_pressure_target"]
-        self.injection_pressure_actual = df_cycle["injection_pressure_actual"]
-        self.melt_volume = df_cycle["screw_volume"]  # Similar concept
-        self.injection_velocity = df_cycle["injection_flow"]  # Similar concept
+        # Create raw time series dict
+        raw_series = {
+            "time_series": df_cycle["time"].tolist(),
+            "injection_pressure_target": df_cycle["injection_pressure_target"].tolist(),
+            "injection_pressure_actual": df_cycle["injection_pressure_actual"].tolist(),
+            "melt_volume": df_cycle["screw_volume"].tolist(),  # Similar concept
+            "injection_velocity": df_cycle[
+                "injection_flow"
+            ].tolist(),  # Similar concept
+        }
+
+        # Apply processing using BaseData method
+        processed_series = self._apply_processing(raw_series)
+
+        # Set time series attributes with processed data (mapping to similar names as upper)
+        self.time_series = processed_series["time_series"]
+        self.injection_pressure_target = processed_series["injection_pressure_target"]
+        self.injection_pressure_actual = processed_series["injection_pressure_actual"]
+        self.melt_volume = processed_series["melt_volume"]
+        self.injection_velocity = processed_series["injection_velocity"]
 
     def _get_cycle_attributes(self):
         return [
             "time_series",
-            "injection_pressure",
             "injection_pressure_target",
+            "injection_pressure_actual",
             "melt_volume",
             "injection_velocity",
         ]
