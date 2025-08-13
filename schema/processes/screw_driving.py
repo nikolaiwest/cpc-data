@@ -3,6 +3,7 @@ import json
 import pandas as pd
 
 from schema.experiment.base import BaseData
+from utils import get_screw_driving_metadata, get_screw_driving_raw_data
 
 
 class ScrewDrivingData(BaseData):
@@ -24,7 +25,7 @@ class ScrewDrivingData(BaseData):
 
     def _load_metadata(self):
         """Load metadata from screw driving meta_data.csv. Returns True if found, False if not."""
-        csv_path = "data/screw_driving/meta_data.csv"
+        csv_path = str(get_screw_driving_metadata())
         df_meta = pd.read_csv(csv_path, index_col=0, sep=";")  # run_id is index
 
         # Filter by upper_workpiece_id first
@@ -61,7 +62,7 @@ class ScrewDrivingData(BaseData):
 
     def _load_cycle_data(self):
         """Load time series data from JSON file, combine all steps, and apply processing"""
-        json_path = f"data/screw_driving/raw_data/{self.file_name}"
+        json_path = str(get_screw_driving_raw_data(self.file_name))
 
         with open(json_path, "r") as file:
             json_data = json.load(file)

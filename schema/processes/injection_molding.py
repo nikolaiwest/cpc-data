@@ -1,9 +1,9 @@
-import os
 from abc import abstractmethod
 
 import pandas as pd
 
 from schema.experiment.base import BaseData
+from utils import get_injection_molding_metadata, get_injection_molding_raw_data
 
 
 class BaseInjectionMoldingCycle(BaseData):
@@ -95,7 +95,7 @@ class BaseInjectionMoldingCycle(BaseData):
 class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _get_metadata_path(self):
-        return "data/injection_molding/upper_workpiece/meta_data.csv"
+        return str(get_injection_molding_metadata("upper"))
 
     def _get_class_name(self):
         return "injection_molding.upper_workpiece"
@@ -115,7 +115,7 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _load_cycle_data(self):
         """Load time series data from CSV file and apply processing"""
-        csv_path = f"data/injection_molding/upper_workpiece/raw_data/{self.file_name}"
+        csv_path = str(get_injection_molding_raw_data("upper", self.file_name))
         df_cycle = pd.read_csv(csv_path, index_col=0)
 
         # Create raw time series dict
@@ -153,7 +153,7 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _get_metadata_path(self):
-        return "data/injection_molding/lower_workpiece/meta_data.csv"
+        return str(get_injection_molding_metadata("lower"))
 
     def _get_class_name(self):
         return "injection_molding.lower_workpiece"
@@ -172,7 +172,7 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _load_cycle_data(self):
         """Load time series data from TXT file, apply processing"""
-        txt_path = f"data/injection_molding/lower_workpiece/raw_data/{self.file_name}"
+        txt_path = str(get_injection_molding_raw_data("lower", self.file_name))
 
         # Read the file and find the data section
         with open(txt_path, "r") as file:

@@ -3,9 +3,11 @@ from typing import Dict, Optional, Union
 
 import yaml
 
+from utils import get_settings_path
+
 
 def get_settings(
-    settings_type: Optional[str] = None, settings_dir: str = "settings"
+    settings_type: Optional[str] = None, settings_dir: Optional[str] = None
 ) -> Union[Dict, Dict[str, Dict]]:
     """
     Load processing and/or extraction settings files.
@@ -15,7 +17,8 @@ def get_settings(
                       - None: Load both processing and extraction (default)
                       - "processing": Load only processing.yml
                       - "extraction": Load only extraction.yml
-        settings_dir: Directory containing the YAML files
+        settings_dir: Directory containing the YAML files.
+                     If None, uses the project's settings directory.
 
     Returns:
         Dict: If settings_type specified, returns single settings dict
@@ -28,7 +31,12 @@ def get_settings(
 
     def _load_yaml(filename: str) -> Dict:
         """Load a single YAML file."""
-        filepath = os.path.join(settings_dir, filename)
+        # Use our new path utility if no custom directory specified
+        if settings_dir is None:
+            filepath = get_settings_path(filename)
+        else:
+            filepath = os.path.join(settings_dir, filename)
+
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Settings file not found: {filepath}")
 
@@ -51,11 +59,11 @@ def get_settings(
         )
 
 
-def get_processing_settings(settings_dir: str = "settings") -> Dict:
+def get_processing_settings(settings_dir: Optional[str] = None) -> Dict:
     """Convenience function to load only processing settings."""
     return get_settings(settings_type="processing", settings_dir=settings_dir)
 
 
-def get_extraction_settings(settings_dir: str = "settings") -> Dict:
+def get_extraction_settings(settings_dir: Optional[str] = None) -> Dict:
     """Convenience function to load only extraction settings."""
     return get_settings(settings_type="extraction", settings_dir=settings_dir)
