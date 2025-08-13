@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..processes import (
+from schema.recordings import (
     LowerInjectionMoldingData,
     ScrewDrivingData,
     UpperInjectionMoldingData,
@@ -10,75 +10,75 @@ from ..processes import (
 
 class ExperimentData:
     """
-    Represents one manufacturing experiment with up to 4 process data streams.
+    Represents one manufacturing experiment with up to 4 data recordings.
     Individual classes handle missing data by setting attributes to None.
     """
 
     def __init__(self, upper_workpiece_id):
         self.upper_workpiece_id = upper_workpiece_id
 
-        # Load all 4 process data streams
+        # Load all 4 data recordings
         self.injection_upper = UpperInjectionMoldingData(upper_workpiece_id)
         self.injection_lower = LowerInjectionMoldingData(upper_workpiece_id)
         self.screw_left = ScrewDrivingData(upper_workpiece_id, position="left")
         self.screw_right = ScrewDrivingData(upper_workpiece_id, position="right")
 
-    def get_data(self, processes="all"):
+    def get_data(self, recordings="all"):
         """
-        Extract data from all or selected processes.
+        Extract data from all or selected recordings.
 
         Args:
-            processes: "all" or list of process names ["injection_upper", "screw_left", ...]
+            recordings: "all" or list of recording names ["injection_upper", "screw_left", ...]
 
         Returns:
-            Dict with process names as keys and extracted data as values
+            Dict with recording names as keys and extracted data as values
         """
-        # Get selected processes
-        selected_processes = self._get_selected_processes(processes)
+        # Get selected recordings
+        selected_recordings = self._get_selected_recordings(recordings)
 
         results = {}
-        for process_name, process_obj in selected_processes.items():
-            if process_obj is not None:  # Handle missing data gracefully
-                process_data = process_obj.get_data()  # Use new simplified interface
-                if process_data is not None:
-                    results[process_name] = process_data
+        for recording_name, recording_obj in selected_recordings.items():
+            if recording_obj is not None:  # Handle missing data gracefully
+                recording_data = recording_obj.get_data()
+                if recording_data is not None:
+                    results[recording_name] = recording_data
 
         return results
 
-    def _get_selected_processes(self, processes):
-        """Get dictionary of selected process objects."""
-        available_processes = {
+    def _get_selected_recordings(self, recordings):
+        """Get dictionary of selected recording objects."""
+        available_recordings = {
             "injection_upper": self.injection_upper,
             "injection_lower": self.injection_lower,
             "screw_left": self.screw_left,
             "screw_right": self.screw_right,
         }
 
-        if processes == "all":
-            return available_processes
-        elif isinstance(processes, list):
+        if recordings == "all":
+            return available_recordings
+        elif isinstance(recordings, list):
             return {
-                name: available_processes[name]
-                for name in processes
-                if name in available_processes
+                name: available_recordings[name]
+                for name in recordings
+                if name in available_recordings
             }
         else:
-            raise ValueError("processes must be 'all' or a list of process names")
+            raise ValueError("recordings must be 'all' or a list of recording names")
 
-    def get_available_processes(self):
-        """Return list of processes that have data available."""
+    def get_available_recordings(self):
+        """Return list of recordings that have data available."""
         available = []
-        processes = {
+        recordings = {
             "injection_upper": self.injection_upper,
             "injection_lower": self.injection_lower,
             "screw_left": self.screw_left,
             "screw_right": self.screw_right,
         }
 
-        for name, process_obj in processes.items():
+        for name, recording_obj in recordings.items():
             if (
-                process_obj is not None
-                and process_obj._get_time_series_data() is not None
+                recording_obj is not None
+                and recording_obj._get_time_series_data() is not None
             ):
                 available.append(name)
 
@@ -86,7 +86,7 @@ class ExperimentData:
 
     def plot_data(self, figsize=(15, 10), save_path=None, show_plot=True):
         """
-        Create a 2x2 plot showing all time series data from all 4 processes.
+        Create a 2x2 plot showing all time series data from all 4 recordings.
 
         Layout:
         - Top Left: Upper Injection Molding
@@ -106,7 +106,7 @@ class ExperimentData:
         # Create 2x2 subplot layout
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         fig.suptitle(
-            f"Experiment {self.upper_workpiece_id} - All Process Data",
+            f"Experiment {self.upper_workpiece_id} - All Recording Data",
             fontsize=16,
             fontweight="bold",
         )
@@ -298,5 +298,5 @@ class ExperimentData:
         ax.grid(True, alpha=0.3)
 
     def __repr__(self):
-        available = self.get_available_processes()
-        return f"ExperimentData(id={self.upper_workpiece_id}, processes={available})"
+        available = self.get_available_recordings()
+        return f"ExperimentData(id={self.upper_workpiece_id}, recordings={available})"

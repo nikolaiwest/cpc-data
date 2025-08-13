@@ -2,11 +2,11 @@ import json
 
 import pandas as pd
 
-from schema.experiment.base import BaseData
+from schema.recordings import BaseRecording
 from utils import get_screw_driving_metadata, get_screw_driving_raw_data
 
 
-class ScrewDrivingData(BaseData):
+class ScrewDrivingData(BaseRecording):
     """
     Represents screw driving data for left or right position.
 

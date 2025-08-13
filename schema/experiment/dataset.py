@@ -1,3 +1,11 @@
+"""
+ExperimentDataset class for cross-experiment analysis.
+
+This module provides the ExperimentDataset class which handles collections
+of manufacturing experiments for comparative analysis across different
+material conditions, process parameters, and quality outcomes.
+"""
+
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -278,7 +286,7 @@ class ExperimentDataset:
         labels = []
 
         for experiment in self.experiments:
-            # Try to get class label from different process sources
+            # Try to get class label from different recording sources
             # Priority: injection_upper -> injection_lower -> screw_left -> screw_right
             label = None
 

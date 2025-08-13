@@ -2,11 +2,11 @@ from abc import abstractmethod
 
 import pandas as pd
 
-from schema.experiment.base import BaseData
+from schema.recordings import BaseRecording
 from utils import get_injection_molding_metadata, get_injection_molding_raw_data
 
 
-class BaseInjectionMoldingCycle(BaseData):
+class BaseInjectionMoldingCycle(BaseRecording):
     """Abstract base class for injection molding data with shared functionality"""
 
     def __init__(self, upper_workpiece_id):

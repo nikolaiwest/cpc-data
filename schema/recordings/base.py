@@ -5,7 +5,7 @@ import yaml
 from settings import get_extraction_settings, get_processing_settings
 
 
-class BaseData(ABC):
+class BaseRecording(ABC):
 
     def __init__(self, upper_workpiece_id):
         self.upper_workpiece_id = upper_workpiece_id
