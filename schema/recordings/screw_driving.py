@@ -1,9 +1,22 @@
 import json
+from dataclasses import dataclass
 
 import pandas as pd
 
 from schema.recordings import BaseRecording
 from utils import get_screw_driving_metadata, get_screw_driving_raw_data
+
+
+@dataclass
+class ScrewDrivingAttributes:
+    """Attribute names for screw driving time series data."""
+
+    time: str = "time"
+    torque: str = "torque"
+    angle: str = "angle"
+    gradient: str = "gradient"
+    torque_red: str = "torqueRed"
+    angle_red: str = "angleRed"
 
 
 class ScrewDrivingData(BaseRecording):
@@ -45,7 +58,7 @@ class ScrewDrivingData(BaseRecording):
         # Get the single row for this workpiece and position
         meta = position_rows.iloc[0]  # Should be exactly one row
 
-        # Store metadata attributes
+        # Store metadata attributes (as available in the csv file)
         self.file_name = meta["file_name"]
         self.workpiece_id = meta["upper_workpiece_id"]
         self.class_value = meta["class_value"]
@@ -80,6 +93,7 @@ class ScrewDrivingData(BaseRecording):
             graph = step_data.get("graph", {})
 
             # Extend lists with data from this step
+            # Note: Using original JSON key names as they are standard in the raw data format
             raw_time.extend(graph.get("time values", []))
             raw_torque.extend(graph.get("torque values", []))
             raw_angle.extend(graph.get("angle values", []))
@@ -87,25 +101,25 @@ class ScrewDrivingData(BaseRecording):
 
         # Create raw time series dict
         raw_series = {
-            "time": raw_time,
-            "torque": raw_torque,
-            "angle": raw_angle,
-            "gradient": raw_gradient,
+            ScrewDrivingAttributes.time: raw_time,
+            ScrewDrivingAttributes.torque: raw_torque,
+            ScrewDrivingAttributes.angle: raw_angle,
+            ScrewDrivingAttributes.gradient: raw_gradient,
             # Add the reduced signals (if they exist in the data)
-            "torqueRed": [],  # Would be populated from JSON if available
-            "angleRed": [],  # Would be populated from JSON if available
+            ScrewDrivingAttributes.torque_red: [],  # Would be populated from JSON if available
+            ScrewDrivingAttributes.angle_red: [],  # Would be populated from JSON if available
         }
 
         # Apply processing using BaseData method
         processed_series = self._apply_processing(raw_series)
 
         # Set time series attributes with processed data
-        self.time_series = processed_series["time"]
-        self.torque = processed_series["torque"]
-        self.angle = processed_series["angle"]
-        self.gradient = processed_series["gradient"]
-        self.torqueRed = processed_series["torqueRed"]
-        self.angleRed = processed_series["angleRed"]
+        self.time_series = processed_series[ScrewDrivingAttributes.time]
+        self.torque = processed_series[ScrewDrivingAttributes.torque]
+        self.angle = processed_series[ScrewDrivingAttributes.angle]
+        self.gradient = processed_series[ScrewDrivingAttributes.gradient]
+        self.torqueRed = processed_series[ScrewDrivingAttributes.torque_red]
+        self.angleRed = processed_series[ScrewDrivingAttributes.angle_red]
 
         # Store individual steps for potential detailed analysis
         self.steps_count = len(steps_data)
@@ -143,12 +157,12 @@ class ScrewDrivingData(BaseRecording):
         if self.time_series is None:
             return None
         return {
-            "time": self.time_series,
-            "torque": self.torque,
-            "angle": self.angle,
-            "gradient": self.gradient,
-            "torqueRed": self.torqueRed,
-            "angleRed": self.angleRed,
+            ScrewDrivingAttributes.time: self.time_series,
+            ScrewDrivingAttributes.torque: self.torque,
+            ScrewDrivingAttributes.angle: self.angle,
+            ScrewDrivingAttributes.gradient: self.gradient,
+            ScrewDrivingAttributes.torque_red: self.torqueRed,
+            ScrewDrivingAttributes.angle_red: self.angleRed,
         }
 
     def get_measurements(self):

@@ -1,9 +1,22 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 
 import pandas as pd
 
 from schema.recordings import BaseRecording
 from utils import get_injection_molding_metadata, get_injection_molding_raw_data
+
+
+@dataclass
+class InjectionMoldingAttributes:
+    """Attribute names for injection molding time series data."""
+
+    time_series: str = "time_series"
+    injection_pressure_target: str = "injection_pressure_target"
+    injection_pressure_actual: str = "injection_pressure_actual"
+    injection_velocity: str = "injection_velocity"
+    melt_volume: str = "melt_volume"
+    state: str = "state"
 
 
 class BaseInjectionMoldingCycle(BaseRecording):
@@ -105,12 +118,12 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
         if self.time_series is None:
             return None
         return {
-            "time_series": self.time_series,
-            "injection_pressure_target": self.injection_pressure_target,
-            "injection_pressure_actual": self.injection_pressure_actual,
-            "melt_volume": self.melt_volume,
-            "injection_velocity": self.injection_velocity,
-            "state": self.state,
+            InjectionMoldingAttributes.time_series: self.time_series,
+            InjectionMoldingAttributes.injection_pressure_target: self.injection_pressure_target,
+            InjectionMoldingAttributes.injection_pressure_actual: self.injection_pressure_actual,
+            InjectionMoldingAttributes.injection_velocity: self.injection_velocity,
+            InjectionMoldingAttributes.melt_volume: self.melt_volume,
+            InjectionMoldingAttributes.state: self.state,
         }
 
     def _load_cycle_data(self):
@@ -120,33 +133,49 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
         # Create raw time series dict
         raw_series = {
-            "time_series": df_cycle["time"].tolist(),
-            "injection_pressure_target": df_cycle["injection_pressure_target"].tolist(),
-            "injection_pressure_actual": df_cycle["injection_pressure_actual"].tolist(),
-            "melt_volume": df_cycle["melt_volume"].tolist(),
-            "injection_velocity": df_cycle["injection_velocity"].tolist(),
-            "state": df_cycle["state"].tolist(),
+            InjectionMoldingAttributes.time_series: df_cycle["time"].tolist(),
+            InjectionMoldingAttributes.injection_pressure_target: df_cycle[
+                InjectionMoldingAttributes.injection_pressure_target
+            ].tolist(),
+            InjectionMoldingAttributes.injection_pressure_actual: df_cycle[
+                InjectionMoldingAttributes.injection_pressure_actual
+            ].tolist(),
+            InjectionMoldingAttributes.injection_velocity: df_cycle[
+                InjectionMoldingAttributes.injection_velocity
+            ].tolist(),
+            InjectionMoldingAttributes.melt_volume: df_cycle[
+                InjectionMoldingAttributes.melt_volume
+            ].tolist(),
+            InjectionMoldingAttributes.state: df_cycle[
+                InjectionMoldingAttributes.state
+            ].tolist(),
         }
 
         # Apply processing using BaseData method
         processed_series = self._apply_processing(raw_series)
 
         # Set time series attributes with processed data
-        self.time_series = processed_series["time_series"]
-        self.injection_pressure_target = processed_series["injection_pressure_target"]
-        self.injection_pressure_actual = processed_series["injection_pressure_actual"]
-        self.melt_volume = processed_series["melt_volume"]
-        self.injection_velocity = processed_series["injection_velocity"]
-        self.state = processed_series["state"]
+        self.time_series = processed_series[InjectionMoldingAttributes.time_series]
+        self.injection_pressure_target = processed_series[
+            InjectionMoldingAttributes.injection_pressure_target
+        ]
+        self.injection_pressure_actual = processed_series[
+            InjectionMoldingAttributes.injection_pressure_actual
+        ]
+        self.melt_volume = processed_series[InjectionMoldingAttributes.melt_volume]
+        self.injection_velocity = processed_series[
+            InjectionMoldingAttributes.injection_velocity
+        ]
+        self.state = processed_series[InjectionMoldingAttributes.state]
 
     def _get_cycle_attributes(self):
         return [
-            "time_series",
-            "injection_pressure_target",
-            "injection_pressure_actual",
-            "melt_volume",
-            "injection_velocity",
-            "state",
+            InjectionMoldingAttributes.time_series,
+            InjectionMoldingAttributes.injection_pressure_target,
+            InjectionMoldingAttributes.injection_pressure_actual,
+            InjectionMoldingAttributes.injection_velocity,
+            InjectionMoldingAttributes.melt_volume,
+            InjectionMoldingAttributes.state,
         ]
 
 
@@ -163,11 +192,11 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
         if self.time_series is None:
             return None
         return {
-            "time_series": self.time_series,
-            "injection_pressure_target": self.injection_pressure_target,
-            "injection_pressure_actual": self.injection_pressure_actual,
-            "melt_volume": self.melt_volume,
-            "injection_velocity": self.injection_velocity,
+            InjectionMoldingAttributes.time_series: self.time_series,
+            InjectionMoldingAttributes.injection_pressure_target: self.injection_pressure_target,
+            InjectionMoldingAttributes.injection_pressure_actual: self.injection_pressure_actual,
+            InjectionMoldingAttributes.melt_volume: self.melt_volume,
+            InjectionMoldingAttributes.injection_velocity: self.injection_velocity,
         }
 
     def _load_cycle_data(self):
@@ -200,40 +229,54 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
         df_cycle = pd.DataFrame(
             data_rows,
             columns=[
-                "time",
-                "injection_pressure_target",
-                "injection_pressure_actual",
-                "screw_volume",
-                "injection_flow",
+                InjectionMoldingAttributes.time_series,
+                InjectionMoldingAttributes.injection_pressure_target,
+                InjectionMoldingAttributes.injection_pressure_actual,
+                InjectionMoldingAttributes.melt_volume,
+                InjectionMoldingAttributes.injection_velocity,
             ],
         )
 
         # Create raw time series dict
         raw_series = {
-            "time_series": df_cycle["time"].tolist(),
-            "injection_pressure_target": df_cycle["injection_pressure_target"].tolist(),
-            "injection_pressure_actual": df_cycle["injection_pressure_actual"].tolist(),
-            "melt_volume": df_cycle["screw_volume"].tolist(),  # Similar concept
-            "injection_velocity": df_cycle[
-                "injection_flow"
-            ].tolist(),  # Similar concept
+            InjectionMoldingAttributes.time_series: df_cycle[
+                InjectionMoldingAttributes.time_series
+            ].tolist(),
+            InjectionMoldingAttributes.injection_pressure_target: df_cycle[
+                InjectionMoldingAttributes.injection_pressure_target
+            ].tolist(),
+            InjectionMoldingAttributes.injection_pressure_actual: df_cycle[
+                InjectionMoldingAttributes.injection_pressure_actual
+            ].tolist(),
+            InjectionMoldingAttributes.injection_velocity: df_cycle[
+                InjectionMoldingAttributes.injection_velocity
+            ].tolist(),
+            InjectionMoldingAttributes.melt_volume: df_cycle[
+                InjectionMoldingAttributes.melt_volume
+            ].tolist(),
         }
 
         # Apply processing using BaseData method
         processed_series = self._apply_processing(raw_series)
 
         # Set time series attributes with processed data (mapping to similar names as upper)
-        self.time_series = processed_series["time_series"]
-        self.injection_pressure_target = processed_series["injection_pressure_target"]
-        self.injection_pressure_actual = processed_series["injection_pressure_actual"]
-        self.melt_volume = processed_series["melt_volume"]
-        self.injection_velocity = processed_series["injection_velocity"]
+        self.time_series = processed_series[InjectionMoldingAttributes.time_series]
+        self.injection_pressure_target = processed_series[
+            InjectionMoldingAttributes.injection_pressure_target
+        ]
+        self.injection_pressure_actual = processed_series[
+            InjectionMoldingAttributes.injection_pressure_actual
+        ]
+        self.injection_velocity = processed_series[
+            InjectionMoldingAttributes.injection_velocity
+        ]
+        self.melt_volume = processed_series[InjectionMoldingAttributes.melt_volume]
 
     def _get_cycle_attributes(self):
         return [
-            "time_series",
-            "injection_pressure_target",
-            "injection_pressure_actual",
-            "melt_volume",
-            "injection_velocity",
+            InjectionMoldingAttributes.time_series,
+            InjectionMoldingAttributes.injection_pressure_target,
+            InjectionMoldingAttributes.injection_pressure_actual,
+            InjectionMoldingAttributes.injection_velocity,
+            InjectionMoldingAttributes.melt_volume,
         ]
