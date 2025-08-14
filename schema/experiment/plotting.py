@@ -17,7 +17,7 @@ def plot_injection_molding(injection_data, title, ax=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
 
-    if injection_data is None or injection_data.time_series is None:
+    if injection_data is None or injection_data.serial_data is None:
         ax.text(
             0.5,
             0.5,
@@ -29,8 +29,10 @@ def plot_injection_molding(injection_data, title, ax=None):
         ax.set_title(title)
         return ax
 
+    # Get serial data dictionary
+    serial_data = injection_data.serial_data
+
     # Use sample count as x-axis instead of time values
-    # This way padding doesn't affect the visualization
     lines_plotted = []
     labels_plotted = []
 
@@ -40,17 +42,16 @@ def plot_injection_molding(injection_data, title, ax=None):
         ("injection_velocity", "Velocity", "orange"),
     ]
 
-    for attr_name, label, color in primary_series:
-        if hasattr(injection_data, attr_name):
-            series_data = getattr(injection_data, attr_name)
-            if series_data is not None and len(series_data) > 0:
-                # Use sample index as x-axis (0, 1, 2, 3, ...)
-                sample_axis = np.arange(len(series_data))
-                line = ax.plot(
-                    sample_axis, series_data, label=label, color=color, alpha=0.7
-                )
-                lines_plotted.extend(line)
-                labels_plotted.append(label)
+    for series_name, label, color in primary_series:
+        series_data = serial_data.get(series_name)
+        if series_data is not None and len(series_data) > 0:
+            # Use sample index as x-axis (0, 1, 2, 3, ...)
+            sample_axis = np.arange(len(series_data))
+            line = ax.plot(
+                sample_axis, series_data, label=label, color=color, alpha=0.7
+            )
+            lines_plotted.extend(line)
+            labels_plotted.append(label)
 
     # Set primary axis properties
     ax.set_xlabel("Sample Count")
@@ -66,22 +67,21 @@ def plot_injection_molding(injection_data, title, ax=None):
         ("injection_pressure_actual", "Pressure Actual", "red", "--"),
     ]
 
-    for attr_name, label, color, linestyle in pressure_series:
-        if hasattr(injection_data, attr_name):
-            pressure_data = getattr(injection_data, attr_name)
-            if pressure_data is not None and len(pressure_data) > 0:
-                # Use sample index as x-axis
-                sample_axis = np.arange(len(pressure_data))
-                line2 = ax2.plot(
-                    sample_axis,
-                    pressure_data,
-                    label=label,
-                    color=color,
-                    alpha=0.7,
-                    linestyle=linestyle,
-                )
-                lines_plotted.extend(line2)
-                labels_plotted.append(label)
+    for series_name, label, color, linestyle in pressure_series:
+        pressure_data = serial_data.get(series_name)
+        if pressure_data is not None and len(pressure_data) > 0:
+            # Use sample index as x-axis
+            sample_axis = np.arange(len(pressure_data))
+            line2 = ax2.plot(
+                sample_axis,
+                pressure_data,
+                label=label,
+                color=color,
+                alpha=0.7,
+                linestyle=linestyle,
+            )
+            lines_plotted.extend(line2)
+            labels_plotted.append(label)
 
     # Set secondary axis properties
     ax2.set_ylabel("Pressure", color="darkblue")
@@ -112,7 +112,7 @@ def plot_screw_driving(screw_data, title, ax=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
 
-    if screw_data is None or screw_data.time_series is None:
+    if screw_data is None or screw_data.serial_data is None:
         ax.text(
             0.5,
             0.5,
@@ -124,8 +124,9 @@ def plot_screw_driving(screw_data, title, ax=None):
         ax.set_title(title)
         return ax
 
-    # Use sample count as x-axis instead of time values
-    # This way padding doesn't affect the visualization
+    # Get serial data dictionary
+    serial_data = screw_data.serial_data
+    print(serial_data)
 
     # Plot torque and gradient on primary (left) y-axis
     primary_series = [
@@ -136,17 +137,16 @@ def plot_screw_driving(screw_data, title, ax=None):
     lines_plotted = []
     labels_plotted = []
 
-    for attr_name, label, color in primary_series:
-        if hasattr(screw_data, attr_name):
-            series_data = getattr(screw_data, attr_name)
-            if series_data is not None and len(series_data) > 0:
-                # Use sample index as x-axis (0, 1, 2, 3, ...)
-                sample_axis = np.arange(len(series_data))
-                line = ax.plot(
-                    sample_axis, series_data, label=label, color=color, alpha=0.7
-                )
-                lines_plotted.extend(line)
-                labels_plotted.append(label)
+    for series_name, label, color in primary_series:
+        series_data = serial_data.get(series_name)
+        if series_data is not None and len(series_data) > 0:
+            # Use sample index as x-axis (0, 1, 2, 3, ...)
+            sample_axis = np.arange(len(series_data))
+            line = ax.plot(
+                sample_axis, series_data, label=label, color=color, alpha=0.7
+            )
+            lines_plotted.extend(line)
+            labels_plotted.append(label)
 
     # Set primary axis properties
     ax.set_xlabel("Sample Count")
@@ -157,21 +157,20 @@ def plot_screw_driving(screw_data, title, ax=None):
     ax2 = ax.twinx()
 
     # Plot angle on secondary (right) y-axis
-    if hasattr(screw_data, "angle"):
-        angle_data = getattr(screw_data, "angle")
-        if angle_data is not None and len(angle_data) > 0:
-            # Use sample index as x-axis
-            sample_axis = np.arange(len(angle_data))
-            line2 = ax2.plot(
-                sample_axis,
-                angle_data,
-                label="Angle",
-                color="blue",
-                alpha=0.7,
-                linestyle="--",
-            )
-            lines_plotted.extend(line2)
-            labels_plotted.append("Angle")
+    angle_data = serial_data.get("angle")
+    if angle_data is not None and len(angle_data) > 0:
+        # Use sample index as x-axis
+        sample_axis = np.arange(len(angle_data))
+        line2 = ax2.plot(
+            sample_axis,
+            angle_data,
+            label="Angle",
+            color="blue",
+            alpha=0.7,
+            linestyle="--",
+        )
+        lines_plotted.extend(line2)
+        labels_plotted.append("Angle")
 
     # Set secondary axis properties
     ax2.set_ylabel("Angle", color="blue")

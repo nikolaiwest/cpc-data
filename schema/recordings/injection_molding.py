@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from schema.recordings import BaseRecording
-from utils import get_injection_molding_static_data, get_injection_molding_serial_data
+from utils import get_injection_molding_serial_data, get_injection_molding_static_data
 
 
 @dataclass
@@ -22,17 +22,16 @@ class InjectionMoldingAttributes:
 class BaseInjectionMoldingCycle(BaseRecording):
     """Abstract base class for injection molding data with shared functionality"""
 
-    def __init__(self, upper_workpiece_id):
+    def __init__(self, upper_workpiece_id: int) -> None:
         super().__init__(upper_workpiece_id)
-        if self._load_static_data():
-            self._load_cycle_data()
-        else:
-            self._set_none_attributes()
 
-    def _load_static_data(self):
-        """Load static data from CSV file. Returns True if found, False if not."""
+        # Populate data attributes using new methods
+        self.static_data = self._get_static_data()
+        self.serial_data = self._get_serial_data()
+
+    def _get_static_data(self) -> dict | None:
+        """Load and return static data for injection molding (from static_data.csv)."""
         csv_path = self._get_static_data_path()
-        # No index_col=0, get default numeric index
         df_static = pd.read_csv(csv_path, sep=";")
 
         # Check for the ID in the upper_workpiece_id column (handle both int and string)
@@ -43,20 +42,12 @@ class BaseInjectionMoldingCycle(BaseRecording):
         ]
 
         if matching_rows.empty:
-            return False
+            return None
 
         # Get the first matching row
         static = matching_rows.iloc[0]
 
-        # True static attributes
-        self.file_name = static["file_name"]
-        self.lower_workpiece_id = static["lower_workpiece_id"]
-        self.class_value = static["class_value"]
-        self.date = static["date"]
-        self.time = static["time"]
-        self.file_name_h5 = static["file_name_h5"]
-
-        # Store all measurements in dict (everything else)
+        # Create static data dict
         static_data_cols = {
             "file_name",
             "lower_workpiece_id",
@@ -64,44 +55,46 @@ class BaseInjectionMoldingCycle(BaseRecording):
             "date",
             "time",
             "file_name_h5",
+            "upper_workpiece_id",  # Add this to excluded cols
         }
-        self.measurements = {
+
+        # Basic static attributes
+        result = {
+            "file_name": static["file_name"],
+            "lower_workpiece_id": static["lower_workpiece_id"],
+            "class_value": static["class_value"],
+            "date": static["date"],
+            "time": static["time"],
+            "file_name_h5": static["file_name_h5"],
+        }
+
+        # Add all measurements (everything else)
+        measurements = {
             col: static[col] for col in static.index if col not in static_data_cols
         }
-        return True
+        result.update(measurements)
 
-    def _set_none_attributes(self):
-        """Set all attributes to None when no static data found"""
-        # Common static attributes
-        self.file_name = None
-        self.lower_workpiece_id = None
-        self.class_value = None
-        self.date = None
-        self.time = None
-        self.file_name_h5 = None
-        self.measurements = {}
-
-        # Set cycle data attributes to None (class-specific)
-        for attr in self._get_cycle_attributes():
-            setattr(self, attr, None)
+        return result
 
     def get_measurements(self):
-        """Return dict of all measurement values for this workpiece"""
-        return self.measurements
+        """Return dict of measurement values for this workpiece"""
+        if self.static_data is None:
+            return {}
+
+        # Filter out the basic static attributes to get just measurements
+        basic_attrs = {
+            "file_name",
+            "lower_workpiece_id",
+            "class_value",
+            "date",
+            "time",
+            "file_name_h5",
+        }
+        return {k: v for k, v in self.static_data.items() if k not in basic_attrs}
 
     @abstractmethod
     def _get_static_data_path(self):
         """Return path to static data CSV file"""
-        pass
-
-    @abstractmethod
-    def _load_cycle_data(self):
-        """Load time series data in format-specific way"""
-        pass
-
-    @abstractmethod
-    def _get_cycle_attributes(self):
-        """Return list of cycle data attribute names"""
         pass
 
 
@@ -113,26 +106,19 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
     def _get_class_name(self):
         return "injection_molding.upper_workpiece"
 
-    def _get_time_series_data(self):
-        """Return dict of time series data for upper injection molding."""
-        if self.time_series is None:
+    def _get_serial_data(self) -> dict | None:
+        """Load and return serial data for upper injection molding (from CSV files)."""
+        # Need static data first to get file name
+        if self.static_data is None:
             return None
-        return {
-            InjectionMoldingAttributes.time_series: self.time_series,
-            InjectionMoldingAttributes.injection_pressure_target: self.injection_pressure_target,
-            InjectionMoldingAttributes.injection_pressure_actual: self.injection_pressure_actual,
-            InjectionMoldingAttributes.injection_velocity: self.injection_velocity,
-            InjectionMoldingAttributes.melt_volume: self.melt_volume,
-            InjectionMoldingAttributes.state: self.state,
-        }
 
-    def _load_cycle_data(self):
-        """Load time series data from CSV file and apply processing"""
-        csv_path = str(get_injection_molding_serial_data("upper", self.file_name))
+        csv_path = str(
+            get_injection_molding_serial_data("upper", self.static_data["file_name"])
+        )
         df_cycle = pd.read_csv(csv_path, index_col=0)
 
-        # Create raw time series dict
-        raw_series = {
+        # Return raw time series dict
+        return {
             InjectionMoldingAttributes.time_series: df_cycle["time"].tolist(),
             InjectionMoldingAttributes.injection_pressure_target: df_cycle[
                 InjectionMoldingAttributes.injection_pressure_target
@@ -151,33 +137,6 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
             ].tolist(),
         }
 
-        # Apply processing using BaseData method
-        processed_series = self._apply_processing(raw_series)
-
-        # Set time series attributes with processed data
-        self.time_series = processed_series[InjectionMoldingAttributes.time_series]
-        self.injection_pressure_target = processed_series[
-            InjectionMoldingAttributes.injection_pressure_target
-        ]
-        self.injection_pressure_actual = processed_series[
-            InjectionMoldingAttributes.injection_pressure_actual
-        ]
-        self.melt_volume = processed_series[InjectionMoldingAttributes.melt_volume]
-        self.injection_velocity = processed_series[
-            InjectionMoldingAttributes.injection_velocity
-        ]
-        self.state = processed_series[InjectionMoldingAttributes.state]
-
-    def _get_cycle_attributes(self):
-        return [
-            InjectionMoldingAttributes.time_series,
-            InjectionMoldingAttributes.injection_pressure_target,
-            InjectionMoldingAttributes.injection_pressure_actual,
-            InjectionMoldingAttributes.injection_velocity,
-            InjectionMoldingAttributes.melt_volume,
-            InjectionMoldingAttributes.state,
-        ]
-
 
 class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
@@ -187,21 +146,15 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
     def _get_class_name(self):
         return "injection_molding.lower_workpiece"
 
-    def _get_time_series_data(self):
-        """Return dict of time series data for lower injection molding."""
-        if self.time_series is None:
+    def _get_serial_data(self) -> dict | None:
+        """Load and return serial data for lower injection molding (from TXT files)."""
+        # Need static data first to get file name
+        if self.static_data is None:
             return None
-        return {
-            InjectionMoldingAttributes.time_series: self.time_series,
-            InjectionMoldingAttributes.injection_pressure_target: self.injection_pressure_target,
-            InjectionMoldingAttributes.injection_pressure_actual: self.injection_pressure_actual,
-            InjectionMoldingAttributes.melt_volume: self.melt_volume,
-            InjectionMoldingAttributes.injection_velocity: self.injection_velocity,
-        }
 
-    def _load_cycle_data(self):
-        """Load time series data from TXT file, apply processing"""
-        txt_path = str(get_injection_molding_serial_data("lower", self.file_name))
+        txt_path = str(
+            get_injection_molding_serial_data("lower", self.static_data["file_name"])
+        )
 
         # Read the file and find the data section
         with open(txt_path, "r") as file:
@@ -237,8 +190,8 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
             ],
         )
 
-        # Create raw time series dict
-        raw_series = {
+        # Return raw time series dict
+        return {
             InjectionMoldingAttributes.time_series: df_cycle[
                 InjectionMoldingAttributes.time_series
             ].tolist(),
@@ -255,28 +208,3 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
                 InjectionMoldingAttributes.melt_volume
             ].tolist(),
         }
-
-        # Apply processing using BaseData method
-        processed_series = self._apply_processing(raw_series)
-
-        # Set time series attributes with processed data (mapping to similar names as upper)
-        self.time_series = processed_series[InjectionMoldingAttributes.time_series]
-        self.injection_pressure_target = processed_series[
-            InjectionMoldingAttributes.injection_pressure_target
-        ]
-        self.injection_pressure_actual = processed_series[
-            InjectionMoldingAttributes.injection_pressure_actual
-        ]
-        self.injection_velocity = processed_series[
-            InjectionMoldingAttributes.injection_velocity
-        ]
-        self.melt_volume = processed_series[InjectionMoldingAttributes.melt_volume]
-
-    def _get_cycle_attributes(self):
-        return [
-            InjectionMoldingAttributes.time_series,
-            InjectionMoldingAttributes.injection_pressure_target,
-            InjectionMoldingAttributes.injection_pressure_actual,
-            InjectionMoldingAttributes.injection_velocity,
-            InjectionMoldingAttributes.melt_volume,
-        ]

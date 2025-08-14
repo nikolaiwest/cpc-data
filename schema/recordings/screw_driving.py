@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from schema.recordings import BaseRecording
-from utils import get_screw_driving_static_data, get_screw_driving_serial_data
+from utils import get_screw_driving_serial_data, get_screw_driving_static_data
 
 
 @dataclass
@@ -27,17 +27,18 @@ class ScrewDrivingData(BaseRecording):
     Combines measurements from all steps in the screw run.
     """
 
-    def __init__(self, upper_workpiece_id, position):
+    def __init__(self, upper_workpiece_id: int, position: str) -> None:
         super().__init__(upper_workpiece_id)
+        # TODO: will be handled by separate childen in the future
         self.position = position  # "left" or "right"
 
-        if self._load_static_data():
-            self._load_cycle_data()
-        else:
-            self._set_none_attributes()
+        # Populate static and serial data attributes
+        # TODO: will (probably) be moved to the base init
+        self.static_data = self._get_static_data()
+        self.serial_data = self._get_serial_data()
 
-    def _load_static_data(self):
-        """Load static data from screw driving static_data.csv. Returns True if found, False if not."""
+    def _get_static_data(self) -> dict | None:
+        """Load and return static data for screw driving (from static_data.csv)."""
         csv_path = str(get_screw_driving_static_data())
         df_static = pd.read_csv(csv_path, index_col=0, sep=";")  # run_id is index
 
@@ -46,84 +47,72 @@ class ScrewDrivingData(BaseRecording):
             df_static["upper_workpiece_id"] == self.upper_workpiece_id
         ]
         if workpiece_rows.empty:
-            return False
+            return None
 
         # Then filter by position (workpiece_location)
         position_rows = workpiece_rows[
             workpiece_rows["workpiece_location"] == self.position
         ]
         if position_rows.empty:
-            return False
+            return None
 
         # Get the single row for this workpiece and position
         static = position_rows.iloc[0]  # Should be exactly one row
 
-        # Store static attributes (as available in the csv file)
-        self.file_name = static["file_name"]
-        self.workpiece_id = static["upper_workpiece_id"]
-        self.class_value = static["class_value"]
-        self.date = static["date"]
-        self.time = static["time"]
-        self.workpiece_usage = static["workpiece_usage"]
-        self.workpiece_result = static["workpiece_result"]
-        self.scenario_condition = static["scenario_condition"]
-        self.scenario_exception = static["scenario_exception"]
+        # Return as dictionary
+        return {
+            "file_name": static["file_name"],
+            "workpiece_id": static["upper_workpiece_id"],
+            "class_value": static["class_value"],
+            "date": static["date"],
+            "time": static["time"],
+            "workpiece_usage": static["workpiece_usage"],
+            "workpiece_result": static["workpiece_result"],
+            "scenario_condition": static["scenario_condition"],
+            "scenario_exception": static["scenario_exception"],
+        }
 
-        # No additional measurements dict needed for screw data
-        self.measurements = {}
-        return True
+    def _get_serial_data(self) -> dict | None:
+        """Load and return serial data for screw driving (from JSON files)."""
+        # Need static data first to get file name
+        if self.static_data is None:
+            return None
 
-    def _load_cycle_data(self):
-        """Load time series data from JSON file, combine all steps, and apply processing"""
-        json_path = str(get_screw_driving_serial_data(self.file_name))
+        json_path = str(get_screw_driving_serial_data(self.static_data["file_name"]))
 
         with open(json_path, "r") as file:
             json_data = json.load(file)
 
-        # Extract tightening steps
+        # Get the tightening steps list
         steps_data = json_data.get("tightening steps", [])
 
-        # Combine measurements from all steps
-        raw_time = []
-        raw_torque = []
-        raw_angle = []
-        raw_gradient = []
+        # Combine all steps into single time series
+        combined_time = []
+        combined_torque = []
+        combined_angle = []
+        combined_gradient = []
+        combined_torque_red = []
+        combined_angle_red = []
 
         for step_data in steps_data:
             graph = step_data.get("graph", {})
 
-            # Extend lists with data from this step
-            # Note: Using original JSON key names as they are standard in the raw data format
-            raw_time.extend(graph.get("time values", []))
-            raw_torque.extend(graph.get("torque values", []))
-            raw_angle.extend(graph.get("angle values", []))
-            raw_gradient.extend(graph.get("gradient values", []))
+            # Extract data from this step's graph
+            combined_time.extend(graph.get("time values", []))
+            combined_torque.extend(graph.get("torque values", []))
+            combined_angle.extend(graph.get("angle values", []))
+            combined_gradient.extend(graph.get("gradient values", []))
+            combined_torque_red.extend(graph.get("torqueRed values", []))
+            combined_angle_red.extend(graph.get("angleRed values", []))
 
-        # Create raw time series dict
-        raw_series = {
-            ScrewDrivingAttributes.time: raw_time,
-            ScrewDrivingAttributes.torque: raw_torque,
-            ScrewDrivingAttributes.angle: raw_angle,
-            ScrewDrivingAttributes.gradient: raw_gradient,
-            # Add the reduced signals (if they exist in the data)
-            ScrewDrivingAttributes.torque_red: [],  # Would be populated from JSON if available
-            ScrewDrivingAttributes.angle_red: [],  # Would be populated from JSON if available
+        return {
+            ScrewDrivingAttributes.time: combined_time,
+            ScrewDrivingAttributes.torque: combined_torque,
+            ScrewDrivingAttributes.angle: combined_angle,
+            ScrewDrivingAttributes.gradient: combined_gradient,
+            ScrewDrivingAttributes.torque_red: combined_torque_red,
+            ScrewDrivingAttributes.angle_red: combined_angle_red,
         }
-
-        # Apply processing using BaseData method
-        processed_series = self._apply_processing(raw_series)
-
-        # Set time series attributes with processed data
-        self.time_series = processed_series[ScrewDrivingAttributes.time]
-        self.torque = processed_series[ScrewDrivingAttributes.torque]
-        self.angle = processed_series[ScrewDrivingAttributes.angle]
-        self.gradient = processed_series[ScrewDrivingAttributes.gradient]
-        self.torqueRed = processed_series[ScrewDrivingAttributes.torque_red]
-        self.angleRed = processed_series[ScrewDrivingAttributes.angle_red]
-
-        # Store individual steps for potential detailed analysis
-        self.steps_count = len(steps_data)
-        self.steps_names = [step.get("name", "") for step in steps_data]
 
     def _set_none_attributes(self):
         """Set all attributes to None when no static data found"""

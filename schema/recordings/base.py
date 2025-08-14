@@ -7,12 +7,52 @@ from settings import get_extraction_settings, get_processing_settings
 
 class BaseRecording(ABC):
 
-    def __init__(self, upper_workpiece_id):
+    def __init__(self, upper_workpiece_id: int) -> None:
+        """
+        Initialize base recording with workpiece ID and empty data attributes.
+        Child classes populate static_data and serial_data during initialization.
+
+        Args:
+            upper_workpiece_id: Unique identifier for the manufacturing experiment.
+        """
         self.upper_workpiece_id = upper_workpiece_id
 
+        # Initialize empty data attributes, child classes will populate these
+        self.static_data: dict | None = None
+        self.serial_data: dict | None = None
+
     @abstractmethod
-    def _get_time_series_data(self):
-        """Return dict of time series data for this data stream."""
+    def _get_static_data(self) -> dict | None:
+        """
+        Load and return static data for this recording (from static_data.csv).
+
+        Static data contains process parameters, quality measurements, and metadata
+        that remain constant throughout the manufacturing cycle, either from screw
+        driving or injection molding. This may include target values, actual
+        measured values, quality indicators, and timestamps.
+
+        Returns:
+            dict or None: Dictionary containing static, univariate measurements where
+                        keys are measurement names and values are the recorded values.
+                        Returns None if no static data is available for this recording.
+        """
+        pass
+
+    @abstractmethod
+    def _get_serial_data(self) -> dict | None:
+        """
+        Load and return serial data for this recording (from files in serial_data/).
+
+        Serial data contains time series measurements that vary over time during the
+        manufacturing process cycle, either from screw driving or injection molding.
+        Each series represents a different measured parameter (pressure, velocity,
+        temperature, torque, angle, etc.) sampled at regular intervals.
+
+        Returns:
+            dict or None: Dictionary where keys are series names (parameter names)
+                        and values are lists of measurements ordered chronologically.
+                        Returns None if no serial data is available for this recording.
+        """
         pass
 
     @abstractmethod
@@ -22,14 +62,12 @@ class BaseRecording(ABC):
 
     def get_data(self):
         """Extract features/data using config file or manual method."""
-        # Step 1: Get raw data from the data source (implemented in child class)
-        time_series_data = self._get_time_series_data()
-
-        if time_series_data is None:
+        # Step 1: Use serial data that child classes populated
+        if self.serial_data is None:
             return None  # Handle missing data gracefully
 
         # Step 2: Apply processing (uses config from processing.yml)
-        processed_data = self._apply_processing(time_series_data)
+        processed_data = self._apply_processing(self.serial_data)
 
         # Step 3: Apply extraction (uses config from extraction.yml)
         extracted_data = self._apply_extraction(processed_data)
