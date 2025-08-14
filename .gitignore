@@ -8,14 +8,14 @@ data/class_values_from_excel.py
 data/class_values.xlsx
 
 # But include three example files for reference
-!data/injection_molding/upper_workpiece/raw_data/upper_workpiece_cycle_00001.csv
-!data/injection_molding/lower_workpiece/raw_data/lower_workpiece_cycle_00002.txt
-!data/screw_driving/raw_data/Ch_000001619516.json
+!data/injection_molding/upper_workpiece/serial_data/upper_workpiece_cycle_00001.csv
+!data/injection_molding/lower_workpiece/serial_data/lower_workpiece_cycle_00002.txt
+!data/screw_driving/serial_data/Ch_000001619516.json
 
-# And include metadata files for all processes
-!data/injection_molding/upper_workpiece/meta_data.csv
-!data/injection_molding/lower_workpiece/meta_data.csv
-!data/screw_driving/meta_data.csv
+# And include static data files for all processes
+!data/injection_molding/upper_workpiece/static_data.csv
+!data/injection_molding/lower_workpiece/static_data.csv
+!data/screw_driving/static_data.csv
 !data/class_values.csv
 
 # Byte-compiled / optimized / DLL files

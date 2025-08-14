@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from schema.recordings import BaseRecording
-from utils import get_injection_molding_metadata, get_injection_molding_raw_data
+from utils import get_injection_molding_static_data, get_injection_molding_serial_data
 
 
 @dataclass
@@ -24,14 +24,14 @@ class BaseInjectionMoldingCycle(BaseRecording):
 
     def __init__(self, upper_workpiece_id):
         super().__init__(upper_workpiece_id)
-        if self._load_metadata():
+        if self._load_static_data():
             self._load_cycle_data()
         else:
             self._set_none_attributes()
 
-    def _load_metadata(self):
-        """Load metadata from CSV file. Returns True if found, False if not."""
-        csv_path = self._get_metadata_path()
+    def _load_static_data(self):
+        """Load static data from CSV file. Returns True if found, False if not."""
+        csv_path = self._get_static_data_path()
         # No index_col=0, get default numeric index
         df_meta = pd.read_csv(csv_path, sep=";")
 
@@ -48,7 +48,7 @@ class BaseInjectionMoldingCycle(BaseRecording):
         # Get the first matching row
         meta = matching_rows.iloc[0]
 
-        # True metadata attributes
+        # True static attributes
         self.file_name = meta["file_name"]
         self.lower_workpiece_id = meta["lower_workpiece_id"]
         self.class_value = meta["class_value"]
@@ -57,7 +57,7 @@ class BaseInjectionMoldingCycle(BaseRecording):
         self.file_name_h5 = meta["file_name_h5"]
 
         # Store all measurements in dict (everything else)
-        metadata_cols = {
+        static_data_cols = {
             "file_name",
             "lower_workpiece_id",
             "class_value",
@@ -66,13 +66,13 @@ class BaseInjectionMoldingCycle(BaseRecording):
             "file_name_h5",
         }
         self.measurements = {
-            col: meta[col] for col in meta.index if col not in metadata_cols
+            col: meta[col] for col in meta.index if col not in static_data_cols
         }
         return True
 
     def _set_none_attributes(self):
-        """Set all attributes to None when no metadata found"""
-        # Common metadata attributes
+        """Set all attributes to None when no static data found"""
+        # Common static attributes
         self.file_name = None
         self.lower_workpiece_id = None
         self.class_value = None
@@ -90,8 +90,8 @@ class BaseInjectionMoldingCycle(BaseRecording):
         return self.measurements
 
     @abstractmethod
-    def _get_metadata_path(self):
-        """Return path to metadata CSV file"""
+    def _get_static_data_path(self):
+        """Return path to static data CSV file"""
         pass
 
     @abstractmethod
@@ -107,8 +107,8 @@ class BaseInjectionMoldingCycle(BaseRecording):
 
 class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
-    def _get_metadata_path(self):
-        return str(get_injection_molding_metadata("upper"))
+    def _get_static_data_path(self):
+        return str(get_injection_molding_static_data("upper"))
 
     def _get_class_name(self):
         return "injection_molding.upper_workpiece"
@@ -128,7 +128,7 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _load_cycle_data(self):
         """Load time series data from CSV file and apply processing"""
-        csv_path = str(get_injection_molding_raw_data("upper", self.file_name))
+        csv_path = str(get_injection_molding_serial_data("upper", self.file_name))
         df_cycle = pd.read_csv(csv_path, index_col=0)
 
         # Create raw time series dict
@@ -181,8 +181,8 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
 class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
-    def _get_metadata_path(self):
-        return str(get_injection_molding_metadata("lower"))
+    def _get_static_data_path(self):
+        return str(get_injection_molding_static_data("lower"))
 
     def _get_class_name(self):
         return "injection_molding.lower_workpiece"
@@ -201,7 +201,7 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
 
     def _load_cycle_data(self):
         """Load time series data from TXT file, apply processing"""
-        txt_path = str(get_injection_molding_raw_data("lower", self.file_name))
+        txt_path = str(get_injection_molding_serial_data("lower", self.file_name))
 
         # Read the file and find the data section
         with open(txt_path, "r") as file:

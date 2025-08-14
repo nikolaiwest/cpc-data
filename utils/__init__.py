@@ -17,10 +17,10 @@ from .paths import (
     get_settings_path,
     get_notebooks_path,
     # Convenience functions for common data access
-    get_injection_molding_metadata,
-    get_injection_molding_raw_data,
-    get_screw_driving_metadata,
-    get_screw_driving_raw_data,
+    get_injection_molding_static_data,
+    get_injection_molding_serial_data,
+    get_screw_driving_static_data,
+    get_screw_driving_serial_data,
     get_class_values,
 )
 
@@ -31,9 +31,9 @@ __all__ = [
     "get_settings_path",
     "get_notebooks_path",
     # Data access convenience functions
-    "get_injection_molding_metadata",
-    "get_injection_molding_raw_data",
-    "get_screw_driving_metadata",
-    "get_screw_driving_raw_data",
+    "get_injection_molding_static_data",
+    "get_injection_molding_serial_data",
+    "get_screw_driving_static_data",
+    "get_screw_driving_serial_data",
     "get_class_values",
 ]

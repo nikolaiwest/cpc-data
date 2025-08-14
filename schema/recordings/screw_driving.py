@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from schema.recordings import BaseRecording
-from utils import get_screw_driving_metadata, get_screw_driving_raw_data
+from utils import get_screw_driving_static_data, get_screw_driving_serial_data
 
 
 @dataclass
@@ -23,7 +23,7 @@ class ScrewDrivingData(BaseRecording):
     """
     Represents screw driving data for left or right position.
 
-    Loads metadata from CSV and time series data from JSON files.
+    Loads static data from CSV and time series data from JSON files.
     Combines measurements from all steps in the screw run.
     """
 
@@ -31,19 +31,19 @@ class ScrewDrivingData(BaseRecording):
         super().__init__(upper_workpiece_id)
         self.position = position  # "left" or "right"
 
-        if self._load_metadata():
+        if self._load_static_data():
             self._load_cycle_data()
         else:
             self._set_none_attributes()
 
-    def _load_metadata(self):
-        """Load metadata from screw driving meta_data.csv. Returns True if found, False if not."""
-        csv_path = str(get_screw_driving_metadata())
-        df_meta = pd.read_csv(csv_path, index_col=0, sep=";")  # run_id is index
+    def _load_static_data(self):
+        """Load static data from screw driving static_data.csv. Returns True if found, False if not."""
+        csv_path = str(get_screw_driving_static_data())
+        df_static = pd.read_csv(csv_path, index_col=0, sep=";")  # run_id is index
 
         # Filter by upper_workpiece_id first
-        workpiece_rows = df_meta[
-            df_meta["upper_workpiece_id"] == self.upper_workpiece_id
+        workpiece_rows = df_static[
+            df_static["upper_workpiece_id"] == self.upper_workpiece_id
         ]
         if workpiece_rows.empty:
             return False
@@ -56,18 +56,18 @@ class ScrewDrivingData(BaseRecording):
             return False
 
         # Get the single row for this workpiece and position
-        meta = position_rows.iloc[0]  # Should be exactly one row
+        static = position_rows.iloc[0]  # Should be exactly one row
 
-        # Store metadata attributes (as available in the csv file)
-        self.file_name = meta["file_name"]
-        self.workpiece_id = meta["upper_workpiece_id"]
-        self.class_value = meta["class_value"]
-        self.date = meta["date"]
-        self.time = meta["time"]
-        self.workpiece_usage = meta["workpiece_usage"]
-        self.workpiece_result = meta["workpiece_result"]
-        self.scenario_condition = meta["scenario_condition"]
-        self.scenario_exception = meta["scenario_exception"]
+        # Store static attributes (as available in the csv file)
+        self.file_name = static["file_name"]
+        self.workpiece_id = static["upper_workpiece_id"]
+        self.class_value = static["class_value"]
+        self.date = static["date"]
+        self.time = static["time"]
+        self.workpiece_usage = static["workpiece_usage"]
+        self.workpiece_result = static["workpiece_result"]
+        self.scenario_condition = static["scenario_condition"]
+        self.scenario_exception = static["scenario_exception"]
 
         # No additional measurements dict needed for screw data
         self.measurements = {}
@@ -75,7 +75,7 @@ class ScrewDrivingData(BaseRecording):
 
     def _load_cycle_data(self):
         """Load time series data from JSON file, combine all steps, and apply processing"""
-        json_path = str(get_screw_driving_raw_data(self.file_name))
+        json_path = str(get_screw_driving_serial_data(self.file_name))
 
         with open(json_path, "r") as file:
             json_data = json.load(file)
@@ -126,8 +126,8 @@ class ScrewDrivingData(BaseRecording):
         self.steps_names = [step.get("name", "") for step in steps_data]
 
     def _set_none_attributes(self):
-        """Set all attributes to None when no metadata found"""
-        # Metadata attributes
+        """Set all attributes to None when no static data found"""
+        # Static data attributes
         self.file_name = None
         self.workpiece_id = None
         self.class_value = None

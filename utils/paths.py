@@ -62,38 +62,38 @@ def get_notebooks_path(*path_parts: Union[str, Path]) -> Path:
 # A few more convenience functions for common data access patterns
 
 
-def get_injection_molding_metadata(workpiece_type: str) -> Path:
-    """Get metadata CSV path for injection molding data."""
+def get_injection_molding_static_data(workpiece_type: str) -> Path:
+    """Get static data CSV path for injection molding data."""
     if workpiece_type not in ("upper", "lower"):
         raise ValueError(
             f"workpiece_type must be 'upper' or 'lower', got: {workpiece_type}"
         )
 
     return get_data_path(
-        "injection_molding", f"{workpiece_type}_workpiece", "meta_data.csv"
+        "injection_molding", f"{workpiece_type}_workpiece", "static_data.csv"
     )
 
 
-def get_injection_molding_raw_data(workpiece_type: str, filename: str) -> Path:
-    """Get raw data file path for injection molding time series."""
+def get_injection_molding_serial_data(workpiece_type: str, filename: str) -> Path:
+    """Get serial data file path for injection molding time series."""
     if workpiece_type not in ("upper", "lower"):
         raise ValueError(
             f"workpiece_type must be 'upper' or 'lower', got: {workpiece_type}"
         )
 
     return get_data_path(
-        "injection_molding", f"{workpiece_type}_workpiece", "raw_data", filename
+        "injection_molding", f"{workpiece_type}_workpiece", "serial_data", filename
     )
 
 
-def get_screw_driving_metadata() -> Path:
-    """Get metadata CSV path for screw driving data."""
-    return get_data_path("screw_driving", "meta_data.csv")
+def get_screw_driving_static_data() -> Path:
+    """Get static data CSV path for screw driving data."""
+    return get_data_path("screw_driving", "static_data.csv")
 
 
-def get_screw_driving_raw_data(filename: str) -> Path:
-    """Get raw data file path for screw driving time series."""
-    return get_data_path("screw_driving", "raw_data", filename)
+def get_screw_driving_serial_data(filename: str) -> Path:
+    """Get serial data file path for screw driving time series."""
+    return get_data_path("screw_driving", "serial_data", filename)
 
 
 def get_class_values() -> Path:

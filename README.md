@@ -207,8 +207,8 @@ cross-process-chain-error-detection/
 │   ├── injection_molding.py   # Upper/lower injection molding classes
 │   └── screw_driving.py       # Left/right screw driving classes
 ├── data/
-│   ├── injection_molding/     # Injection molding time series + metadata
-│   ├── screw_driving/         # Screw driving time series + metadata  
+│   ├── injection_molding/     # Injection molding serial data and static data 
+│   ├── screw_driving/         # Screw driving time series + static data   
 │   └── class_values.csv       # Experiment labels and conditions
 ├── settings.yml               # Feature extraction configuration
 └── main.py                   # Usage examples and testing
@@ -223,7 +223,7 @@ The screw driving component of this project is part of a larger dataset collecti
 - **📊 Dataset**: [Industrial Screw Driving Dataset Collection on Zenodo](https://zenodo.org/records/15393134)
   - 6 scenarios with 34,000+ screw driving operations
   - Covers thread degradation, surface friction, assembly conditions, and material variations
-  - Complete time-series data with comprehensive metadata
+  - Complete time-series data with comprehensive dataset information
 
 - **🐍 Python Library**: [PyScrew](https://github.com/nikolaiwest/pyscrew)
   - Streamlined access to the Zenodo screw driving datasets
