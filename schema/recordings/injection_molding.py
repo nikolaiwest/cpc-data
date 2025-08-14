@@ -33,28 +33,28 @@ class BaseInjectionMoldingCycle(BaseRecording):
         """Load static data from CSV file. Returns True if found, False if not."""
         csv_path = self._get_static_data_path()
         # No index_col=0, get default numeric index
-        df_meta = pd.read_csv(csv_path, sep=";")
+        df_static = pd.read_csv(csv_path, sep=";")
 
         # Check for the ID in the upper_workpiece_id column (handle both int and string)
         target_id = self.upper_workpiece_id
-        matching_rows = df_meta[
-            (df_meta["upper_workpiece_id"] == target_id)
-            | (df_meta["upper_workpiece_id"] == str(target_id))
+        matching_rows = df_static[
+            (df_static["upper_workpiece_id"] == target_id)
+            | (df_static["upper_workpiece_id"] == str(target_id))
         ]
 
         if matching_rows.empty:
             return False
 
         # Get the first matching row
-        meta = matching_rows.iloc[0]
+        static = matching_rows.iloc[0]
 
         # True static attributes
-        self.file_name = meta["file_name"]
-        self.lower_workpiece_id = meta["lower_workpiece_id"]
-        self.class_value = meta["class_value"]
-        self.date = meta["date"]
-        self.time = meta["time"]
-        self.file_name_h5 = meta["file_name_h5"]
+        self.file_name = static["file_name"]
+        self.lower_workpiece_id = static["lower_workpiece_id"]
+        self.class_value = static["class_value"]
+        self.date = static["date"]
+        self.time = static["time"]
+        self.file_name_h5 = static["file_name_h5"]
 
         # Store all measurements in dict (everything else)
         static_data_cols = {
@@ -66,7 +66,7 @@ class BaseInjectionMoldingCycle(BaseRecording):
             "file_name_h5",
         }
         self.measurements = {
-            col: meta[col] for col in meta.index if col not in static_data_cols
+            col: static[col] for col in static.index if col not in static_data_cols
         }
         return True
 
