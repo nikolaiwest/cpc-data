@@ -126,7 +126,6 @@ def plot_screw_driving(screw_data, title, ax=None):
 
     # Get serial data dictionary
     serial_data = screw_data.serial_data
-    print(serial_data)
 
     # Plot torque and gradient on primary (left) y-axis
     primary_series = [

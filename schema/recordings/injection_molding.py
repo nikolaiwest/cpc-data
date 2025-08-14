@@ -9,18 +9,33 @@ from utils import get_injection_molding_serial_data, get_injection_molding_stati
 
 @dataclass
 class InjectionMoldingAttributes:
-    """Attribute names for injection molding time series data."""
+    """
+    Attribute names for injection molding time series data.
 
-    time_series: str = "time_series"
-    injection_pressure_target: str = "injection_pressure_target"
-    injection_pressure_actual: str = "injection_pressure_actual"
-    injection_velocity: str = "injection_velocity"
-    melt_volume: str = "melt_volume"
+    Provides consistent string constants for accessing time series data
+    across upper and lower workpiece injection molding processes.
+    """
+
+    time: str = "time"
+    pressure_target: str = "injection_pressure_target"
+    pressure_actual: str = "injection_pressure_actual"
+    velocity: str = "injection_velocity"
+    volume: str = "melt_volume"
     state: str = "state"
 
 
-class BaseInjectionMoldingCycle(BaseRecording):
-    """Abstract base class for injection molding data with shared functionality"""
+# Alias for cleaner code and reduced verbosity
+IMA = InjectionMoldingAttributes
+
+
+class InjectionMoldingBase(BaseRecording):
+    """
+    Base class for injection molding data with shared functionality.
+
+    Handles common operations like static data loading from CSV files
+    and measurement extraction. Child classes implement workpiece-specific
+    serial data loading for upper and lower workpieces.
+    """
 
     def __init__(self, upper_workpiece_id: int) -> None:
         super().__init__(upper_workpiece_id)
@@ -98,7 +113,14 @@ class BaseInjectionMoldingCycle(BaseRecording):
         pass
 
 
-class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
+class InjectionMoldingUpper(InjectionMoldingBase):
+    """
+    Upper workpiece injection molding data from CSV files.
+
+    Loads time series data including pressure, velocity, volume, and state
+    measurements from CSV files in the upper_workpiece serial_data directory.
+    Includes state information not available in lower workpiece data.
+    """
 
     def _get_static_data_path(self):
         return str(get_injection_molding_static_data("upper"))
@@ -119,26 +141,23 @@ class UpperInjectionMoldingData(BaseInjectionMoldingCycle):
 
         # Return raw time series dict
         return {
-            InjectionMoldingAttributes.time_series: df_cycle["time"].tolist(),
-            InjectionMoldingAttributes.injection_pressure_target: df_cycle[
-                InjectionMoldingAttributes.injection_pressure_target
-            ].tolist(),
-            InjectionMoldingAttributes.injection_pressure_actual: df_cycle[
-                InjectionMoldingAttributes.injection_pressure_actual
-            ].tolist(),
-            InjectionMoldingAttributes.injection_velocity: df_cycle[
-                InjectionMoldingAttributes.injection_velocity
-            ].tolist(),
-            InjectionMoldingAttributes.melt_volume: df_cycle[
-                InjectionMoldingAttributes.melt_volume
-            ].tolist(),
-            InjectionMoldingAttributes.state: df_cycle[
-                InjectionMoldingAttributes.state
-            ].tolist(),
+            IMA.time: df_cycle[IMA.time].tolist(),
+            IMA.pressure_target: df_cycle[IMA.pressure_target].tolist(),
+            IMA.pressure_actual: df_cycle[IMA.pressure_actual].tolist(),
+            IMA.velocity: df_cycle[IMA.velocity].tolist(),
+            IMA.volume: df_cycle[IMA.volume].tolist(),
+            IMA.state: df_cycle[IMA.state].tolist(),
         }
 
 
-class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
+class InjectionMoldingLower(InjectionMoldingBase):
+    """
+    Lower workpiece injection molding data from TXT files.
+
+    Loads time series data from semicolon-delimited TXT files with custom
+    parsing logic. Contains similar measurements to upper workpiece but
+    excludes state information and uses different file format.
+    """
 
     def _get_static_data_path(self):
         return str(get_injection_molding_static_data("lower"))
@@ -182,29 +201,19 @@ class LowerInjectionMoldingData(BaseInjectionMoldingCycle):
         df_cycle = pd.DataFrame(
             data_rows,
             columns=[
-                InjectionMoldingAttributes.time_series,
-                InjectionMoldingAttributes.injection_pressure_target,
-                InjectionMoldingAttributes.injection_pressure_actual,
-                InjectionMoldingAttributes.melt_volume,
-                InjectionMoldingAttributes.injection_velocity,
+                IMA.time,
+                IMA.pressure_target,
+                IMA.pressure_actual,
+                IMA.volume,
+                IMA.velocity,
             ],
         )
 
         # Return raw time series dict
         return {
-            InjectionMoldingAttributes.time_series: df_cycle[
-                InjectionMoldingAttributes.time_series
-            ].tolist(),
-            InjectionMoldingAttributes.injection_pressure_target: df_cycle[
-                InjectionMoldingAttributes.injection_pressure_target
-            ].tolist(),
-            InjectionMoldingAttributes.injection_pressure_actual: df_cycle[
-                InjectionMoldingAttributes.injection_pressure_actual
-            ].tolist(),
-            InjectionMoldingAttributes.injection_velocity: df_cycle[
-                InjectionMoldingAttributes.injection_velocity
-            ].tolist(),
-            InjectionMoldingAttributes.melt_volume: df_cycle[
-                InjectionMoldingAttributes.melt_volume
-            ].tolist(),
+            IMA.time: df_cycle[IMA.time].tolist(),
+            IMA.pressure_target: df_cycle[IMA.pressure_target].tolist(),
+            IMA.pressure_actual: df_cycle[IMA.pressure_actual].tolist(),
+            IMA.velocity: df_cycle[IMA.velocity].tolist(),
+            IMA.volume: df_cycle[IMA.volume].tolist(),
         }

@@ -1,7 +1,7 @@
 from schema.recordings import (
-    LowerInjectionMoldingData,
+    InjectionMoldingLower,
+    InjectionMoldingUpper,
     ScrewDrivingData,
-    UpperInjectionMoldingData,
 )
 
 
@@ -15,8 +15,8 @@ class ExperimentData:
         self.upper_workpiece_id = upper_workpiece_id
 
         # Load all 4 data recordings
-        self.injection_upper = UpperInjectionMoldingData(upper_workpiece_id)
-        self.injection_lower = LowerInjectionMoldingData(upper_workpiece_id)
+        self.injection_upper = InjectionMoldingUpper(upper_workpiece_id)
+        self.injection_lower = InjectionMoldingLower(upper_workpiece_id)
         self.screw_left = ScrewDrivingData(upper_workpiece_id, position="left")
         self.screw_right = ScrewDrivingData(upper_workpiece_id, position="right")
 
