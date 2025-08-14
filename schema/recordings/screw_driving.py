@@ -9,7 +9,12 @@ from utils import get_screw_driving_serial_data, get_screw_driving_static_data
 
 @dataclass
 class ScrewDrivingAttributes:
-    """Attribute names for screw driving time series data."""
+    """
+    Attribute names for screw driving time series data.
+
+    Provides consistent string constants for accessing time series data
+    across left and right position screw driving processes.
+    """
 
     time: str = "time"
     torque: str = "torque"
@@ -19,21 +24,24 @@ class ScrewDrivingAttributes:
     angle_red: str = "angleRed"
 
 
-class ScrewDrivingData(BaseRecording):
-    """
-    Represents screw driving data for left or right position.
+# Alias for cleaner code and reduced verbosity
+SDA = ScrewDrivingAttributes
 
-    Loads static data from CSV and time series data from JSON files.
-    Combines measurements from all steps in the screw run.
+
+class ScrewDrivingBase(BaseRecording):
+    """
+    Base class for screw driving data with shared functionality.
+
+    Handles common operations like static data loading from CSV files
+    and JSON parsing. Child classes implement position-specific logic
+    for left and right screw driving operations.
     """
 
     def __init__(self, upper_workpiece_id: int, position: str) -> None:
-        super().__init__(upper_workpiece_id)
-        # TODO: will be handled by separate childen in the future
         self.position = position  # "left" or "right"
+        super().__init__(upper_workpiece_id)
 
-        # Populate static and serial data attributes
-        # TODO: will (probably) be moved to the base init
+        # Populate data attributes using new methods
         self.static_data = self._get_static_data()
         self.serial_data = self._get_serial_data()
 
@@ -106,57 +114,43 @@ class ScrewDrivingData(BaseRecording):
             combined_angle_red.extend(graph.get("angleRed values", []))
 
         return {
-            ScrewDrivingAttributes.time: combined_time,
-            ScrewDrivingAttributes.torque: combined_torque,
-            ScrewDrivingAttributes.angle: combined_angle,
-            ScrewDrivingAttributes.gradient: combined_gradient,
-            ScrewDrivingAttributes.torque_red: combined_torque_red,
-            ScrewDrivingAttributes.angle_red: combined_angle_red,
+            SDA.time: combined_time,
+            SDA.torque: combined_torque,
+            SDA.angle: combined_angle,
+            SDA.gradient: combined_gradient,
+            SDA.torque_red: combined_torque_red,
+            SDA.angle_red: combined_angle_red,
         }
 
-    def _set_none_attributes(self):
-        """Set all attributes to None when no static data found"""
-        # Static data attributes
-        self.file_name = None
-        self.workpiece_id = None
-        self.class_value = None
-        self.date = None
-        self.workpiece_usage = None
-        self.workpiece_result = None
-        self.scenario_condition = None
-        self.scenario_exception = None
-        self.measurements = {}
-
-        # Time series attributes
-        self.time_series = None
-        self.torque = None
-        self.angle = None
-        self.gradient = None
-        self.torqueRed = None
-        self.angleRed = None
-        self.steps_count = None
-        self.steps_names = None
+    def get_measurements(self):
+        """Return dict of measurement values for this workpiece."""
+        # No additional measurements for screw driving data
+        return {}
 
     def _get_class_name(self):
         """Return class name path for YAML config lookup."""
         return f"screw_driving.{self.position}"
 
-    def _get_time_series_data(self):
-        """Return dict of time series data for screw driving."""
-        if self.time_series is None:
-            return None
-        return {
-            ScrewDrivingAttributes.time: self.time_series,
-            ScrewDrivingAttributes.torque: self.torque,
-            ScrewDrivingAttributes.angle: self.angle,
-            ScrewDrivingAttributes.gradient: self.gradient,
-            ScrewDrivingAttributes.torque_red: self.torqueRed,
-            ScrewDrivingAttributes.angle_red: self.angleRed,
-        }
 
-    def get_measurements(self):
-        """Return dict of all measurement values for this workpiece"""
-        return self.measurements  # Empty for screw data, keeping consistent interface
+class ScrewDrivingLeft(ScrewDrivingBase):
+    """
+    Left position screw driving data from JSON files.
 
-    def __repr__(self):
-        return f"ScrewDrivingData(upper_workpiece_id={self.upper_workpiece_id}, position='{self.position}', steps={self.steps_count})"
+    Loads time series data including torque, angle, and gradient measurements
+    from JSON files for left-side screw driving operations.
+    """
+
+    def __init__(self, upper_workpiece_id: int) -> None:
+        super().__init__(upper_workpiece_id, position="left")
+
+
+class ScrewDrivingRight(ScrewDrivingBase):
+    """
+    Right position screw driving data from JSON files.
+
+    Loads time series data including torque, angle, and gradient measurements
+    from JSON files for right-side screw driving operations.
+    """
+
+    def __init__(self, upper_workpiece_id: int) -> None:
+        super().__init__(upper_workpiece_id, position="right")

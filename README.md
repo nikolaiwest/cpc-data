@@ -31,69 +31,75 @@ classDiagram
 
     class ExperimentData {
         +int upper_workpiece_id
-        +UpperInjectionMoldingData injection_upper
-        +LowerInjectionMoldingData injection_lower
-        +ScrewDrivingData screw_left
-        +ScrewDrivingData screw_right
+        +InjectionMoldingUpper injection_upper
+        +InjectionMoldingLower injection_lower
+        +ScrewDrivingLeft screw_left
+        +ScrewDrivingRight screw_right
         +get_data(config_path, method)
         +get_available_processes()
     }
 
-    class BaseData {
+    class BaseRecording {
         <<abstract>>
         +int upper_workpiece_id
-        +get_data(config_path, method)*
-        +_get_time_series_data()*
-        +_apply_method(series_data, method)
+        +dict static_data
+        +dict serial_data
+        +_get_static_data()*
+        +_get_serial_data()*
+        +get_data()
     }
 
-    class UpperInjectionMoldingData {
-        +pandas.Series time_series
-        +pandas.Series injection_pressure
-        +pandas.Series resulting_injection_pressure
-        +pandas.Series melt_volume
-        +pandas.Series injection_velocity
-        +pandas.Series state
-        +dict measurements
+    class InjectionMoldingBase {
+        +get_measurements()
+        +_get_static_data_path()*
     }
 
-    class LowerInjectionMoldingData {
-        +pandas.Series time_series
-        +pandas.Series injection_pressure
-        +pandas.Series resulting_injection_pressure
-        +pandas.Series melt_volume
-        +pandas.Series injection_velocity
-        +pandas.Series state
-        +dict measurements
-    }
-
-    class ScrewDrivingData {
+    class ScrewDrivingBase {
         +str position
-        +list time_values
-        +list torque_values
-        +list angle_values
-        +list gradient_values
-        +dict measurements
+        +get_measurements()
+        +_get_class_name()
+    }
+
+    class InjectionMoldingUpper {
+        +_get_serial_data()
+        +_get_class_name()
+    }
+
+    class InjectionMoldingLower {
+        +_get_serial_data()
+        +_get_class_name()
+    }
+
+    class ScrewDrivingLeft {
+        +position: "left"
+    }
+
+    class ScrewDrivingRight {
+        +position: "right"
     }
 
     ExperimentDataset "1" *-- "0..*" ExperimentData : contains
-    ExperimentData "1" *-- "1" UpperInjectionMoldingData : injection_upper
-    ExperimentData "1" *-- "1" LowerInjectionMoldingData : injection_lower
-    ExperimentData "1" *-- "2" ScrewDrivingData : screw_left, screw_right
+    ExperimentData "1" *-- "1" InjectionMoldingUpper : injection_upper
+    ExperimentData "1" *-- "1" InjectionMoldingLower : injection_lower
+    ExperimentData "1" *-- "1" ScrewDrivingLeft : screw_left
+    ExperimentData "1" *-- "1" ScrewDrivingRight : screw_right
 
-    BaseData <|-- UpperInjectionMoldingData
-    BaseData <|-- LowerInjectionMoldingData  
-    BaseData <|-- ScrewDrivingData
+    BaseRecording <|-- InjectionMoldingBase
+    BaseRecording <|-- ScrewDrivingBase
+    InjectionMoldingBase <|-- InjectionMoldingUpper
+    InjectionMoldingBase <|-- InjectionMoldingLower  
+    ScrewDrivingBase <|-- ScrewDrivingLeft
+    ScrewDrivingBase <|-- ScrewDrivingRight
 
     note for ExperimentDataset "Collection-level analysis\nDataset filtering & sampling\nCross-experiment comparison"
-    note for ExperimentData "Single manufacturing run\nUp to 4 process streams\nUnified data extraction"
-    note for BaseData "Abstract base class\nConfigurable feature extraction\nMultiple extraction methods"
+    note for ExperimentData "Single manufacturing run\n4 process streams\nUnified data extraction"
+    note for BaseRecording "Abstract base class\nConsistent data loading\nStatic & serial data attributes"
 ```
 
 ### Core Usage Pattern
 
 ```python
-# Single manufacturing experiment (up to 4 data streams)
+# Single manufacturing experiment (4 data streams)
 experiment = ExperimentData(upper_workpiece_id=17401)
 
 # Collection of experiments for comparative analysis  
@@ -104,21 +110,21 @@ dataset = ExperimentDataset.from_class_values(
 )
 ```
 
-### Data Streams Per Experiment (and sources)
+### Data Streams Per Experiment
 
-1. **Upper Workpiece Injection Molding** (CSV)
-   - Time series: pressure, velocity, volume, temperature
+1. **Upper Workpiece Injection Molding** (CSV files)
+   - Time series: pressure target/actual, velocity, volume, state
    
-2. **Lower Workpiece Injection Molding** (TXT) 
-   - Time series: pressure, velocity, volume, temperature
+2. **Lower Workpiece Injection Molding** (TXT files) 
+   - Time series: pressure target/actual, velocity, volume
    
-3. **Left Position Screw Driving** (JSON)
+3. **Left Position Screw Driving** (JSON files)
    - Time series: torque, angle, gradient across tightening steps
    
-4. **Right Position Screw Driving** (JSON)
+4. **Right Position Screw Driving** (JSON files)
    - Time series: torque, angle, gradient across tightening steps
 
-## 📊 Material Conditions Studied (examples)
+## 📊 Material Conditions Studied
 
 - **Control Groups**: Reference materials for baseline comparisons
 - **Recyclate Content**: 0%, 10%, 20%, 30%, 40% variations
@@ -130,18 +136,17 @@ dataset = ExperimentDataset.from_class_values(
 ### Basic Usage
 
 ```python
-from schema.experiment_data import ExperimentData
-from schema.experiment_dataset import ExperimentDataset
+from schema import ExperimentData, ExperimentDataset
 
 # Load single experiment
 experiment = ExperimentData(upper_workpiece_id=17401)
-print(f"Available processes: {experiment.get_available_processes()}")
 
-# Extract raw data from all processes
-raw_data = experiment.get_data(method="raw")
+# Access individual recordings
+print(f"Upper injection data: {experiment.injection_upper.serial_data.keys()}")
+print(f"Left screw data: {experiment.screw_left.serial_data.keys()}")
 
-# Extract features using configuration
-featured_data = experiment.get_data(config_path="settings.yml")
+# Extract processed data
+processed_data = experiment.injection_upper.get_data()
 ```
 
 ### Dataset Creation and Analysis
@@ -163,37 +168,37 @@ control_dataset = ExperimentDataset.from_class_values(
     sample_size=50
 )
 
-# Extract data from entire datasets
-recyclate_features = recyclate_dataset.get_data(config_path="settings.yml")
-control_features = control_dataset.get_data(config_path="settings.yml")
+# Extract features from datasets
+recyclate_features = recyclate_dataset.get_data()
+control_features = control_dataset.get_data()
 ```
 
 ### Configuration-Based Feature Extraction
 
-Create a `settings.yml` file to define feature extraction:
+Configure processing and extraction using YAML files:
 
+**processing.yml** - Data preprocessing:
 ```yaml
-extraction:
-  injection_upper:
-    injection_pressure:
+injection_molding:
+  upper_workpiece:
+    injection_pressure_target:
+      apply_equal_lengths:
+        target_length: 2048
+        cutoff_position: post
+        padding_val: 0.0
+```
+
+**extraction.yml** - Feature extraction:
+```yaml
+injection_molding:
+  upper_workpiece:
+    injection_pressure_target:
       use_series: true
-      method: "paa"
-      segments: 20
-      normalize: true
+      method: "raw"  # Options: raw, paa, tsfresh, catch22
     melt_volume:
-      use_series: true  
-      method: "tsfresh"
-      normalize: false
-      
-  screw_left:
-    torque:
-      use_series: true
-      method: "catch22"
-      normalize: true
-    angle:
       use_series: true
       method: "paa"
-      segments: 10
+      paa_target_length: 200
 ```
 
 ## 📁 Project Structure
@@ -201,17 +206,24 @@ extraction:
 ```
 cross-process-chain-error-detection/
 ├── schema/
-│   ├── base_data.py           # Abstract base with feature extraction
-│   ├── experiment_data.py     # Single experiment (4 processes)
-│   ├── experiment_dataset.py  # Multiple experiments collection
-│   ├── injection_molding.py   # Upper/lower injection molding classes
-│   └── screw_driving.py       # Left/right screw driving classes
+│   ├── recordings/
+│   │   ├── base.py                    # BaseRecording abstract class
+│   │   ├── injection_molding.py       # InjectionMoldingBase/Upper/Lower
+│   │   └── screw_driving.py           # ScrewDrivingBase/Left/Right
+│   └── experiment/
+│       ├── data.py                    # ExperimentData (single experiment)
+│       ├── dataset.py                 # ExperimentDataset (collections)
+│       └── plotting.py                # Visualization utilities
+├── settings/
+│   ├── processing.yml                 # Data preprocessing configuration
+│   └── extraction.yml                 # Feature extraction configuration
+├── utils/
+│   └── paths.py                       # Path utilities for data access
 ├── data/
-│   ├── injection_molding/     # Injection molding serial data and static data 
-│   ├── screw_driving/         # Screw driving time series + static data   
-│   └── class_values.csv       # Experiment labels and conditions
-├── settings.yml               # Feature extraction configuration
-└── main.py                   # Usage examples and testing
+│   ├── injection_molding/             # Static & serial data
+│   ├── screw_driving/                 # Static & serial data
+│   └── class_values.csv               # Experiment labels
+└── notebooks/                         # Analysis examples
 ```
 
 ## 🔗 Related Resources
@@ -232,18 +244,16 @@ The screw driving component of this project is part of a larger dataset collecti
 
 ### Integration Example
 
-You can combine this cross-process framework with PyScrew for extended analysis:
-
 ```python
 import pyscrew
-from schema.experiment_data import ExperimentData
+from schema import ExperimentData
 
 # Load screw driving data from PyScrew
-screw_data = pyscrew.get_data(scenario="s05")  # Upper workpiece variations
+screw_data = pyscrew.get_data(scenario="s05")
 
 # Load corresponding injection molding data
 experiment = ExperimentData(upper_workpiece_id=17401)
-injection_data = experiment.injection_upper.get_data(method="raw")
+injection_data = experiment.injection_upper.serial_data
 
 # Analyze correlations between processes
 # ... your analysis code
@@ -283,7 +293,7 @@ git clone https://github.com/yourusername/cross-process-chain-error-detection
 cd cross-process-chain-error-detection
 
 # Install dependencies
-pip install pandas numpy pyyaml
+pip install pandas numpy pyyaml matplotlib
 
 # Optional: Install PyScrew for extended screw driving analysis
 pip install pyscrew
@@ -291,12 +301,52 @@ pip install pyscrew
 
 ## 📖 Usage Examples
 
-See `main.py` for comprehensive examples including:
-- Single experiment analysis
-- Dataset creation with different filtering strategies  
-- Cross-experiment comparative studies
-- Configuration-based feature extraction
-- Material condition comparisons
+### Data Access Patterns
+
+```python
+from schema import ExperimentData
+
+# Load experiment
+experiment = ExperimentData(upper_workpiece_id=17401)
+
+# Access static data (measurements, metadata)
+static_data = experiment.injection_upper.static_data
+print(f"Class value: {static_data['class_value']}")
+print(f"Measurements: {experiment.injection_upper.get_measurements()}")
+
+# Access serial data (time series)
+serial_data = experiment.injection_upper.serial_data
+pressure_target = serial_data['injection_pressure_target']
+pressure_actual = serial_data['injection_pressure_actual']
+
+# Plot experiment data
+experiment.plot_data()
+```
+
+### Advanced Dataset Analysis
+
+```python
+from schema import ExperimentDataset
+
+# Create comparative datasets
+datasets = {
+    'control': ExperimentDataset.from_class_values(
+        filter_type="exact", filter_value="control_group_01"
+    ),
+    'recyclate_20': ExperimentDataset.from_class_values(
+        filter_type="contains", filter_value="recyclate_content_20"
+    ),
+    'recyclate_40': ExperimentDataset.from_class_values(
+        filter_type="contains", filter_value="recyclate_content_40"
+    )
+}
+
+# Extract features for all datasets
+features = {}
+for name, dataset in datasets.items():
+    features[name] = dataset.get_data()
+    print(f"{name}: {features[name].shape[0]} experiments")
+```
 
 ## 🤝 Contributing
 
@@ -314,12 +364,6 @@ When using this framework in research, please cite:
 - This repository for the cross-process analysis framework
 - The [Zenodo dataset](https://zenodo.org/records/15393134) for screw driving data
 - Relevant papers mentioned in the [PyScrew documentation](https://github.com/nikolaiwest/pyscrew)
-
-## 📞 Contact
-
-For questions about this cross-process framework or collaboration opportunities:
-- Create an issue in this repository
-- Contact details available in related publications
 
 ## 🏛️ Acknowledgments
 
