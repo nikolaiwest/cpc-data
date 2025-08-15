@@ -24,8 +24,27 @@ class InjectionMoldingAttributes:
     state: str = "state"
 
 
-# Alias for cleaner code and reduced verbosity
+@dataclass
+class InjectionMoldingCSVColumns:
+    """
+    Column names for injection molding static data CSV files.
+
+    Provides consistent string constants for accessing CSV columns
+    and building return dictionaries from static_data.csv files.
+    """
+
+    file_name: str = "file_name"
+    lower_workpiece_id: str = "lower_workpiece_id"
+    class_value: str = "class_value"
+    date: str = "date"
+    time: str = "time"
+    file_name_h5: str = "file_name_h5"
+    upper_workpiece_id: str = "upper_workpiece_id"
+
+
+# Aliases for cleaner code and reduced verbosity
 IMA = InjectionMoldingAttributes
+CSV = InjectionMoldingCSVColumns
 
 
 class InjectionMoldingBase(BaseRecording):
@@ -34,83 +53,138 @@ class InjectionMoldingBase(BaseRecording):
 
     Handles common operations like static data loading from CSV files
     and measurement extraction. Child classes implement workpiece-specific
-    serial data loading for upper and lower workpieces.
+    serial data loading for upper and lower workpieces with different
+    file formats (CSV vs TXT) and parsing requirements.
     """
 
     def __init__(self, upper_workpiece_id: int) -> None:
-        super().__init__(upper_workpiece_id)
+        """
+        Initialize injection molding recording with workpiece ID.
 
-        # Populate data attributes using new methods
+        Loads both static measurement data and time series data from files during
+        initialization. Static data comes from workpiece-specific static_data.csv files,
+        while serial data is loaded from either CSV files (upper) or custom TXT files
+        (lower) in the corresponding serial_data/ directories.
+
+        Args:
+            upper_workpiece_id: Unique identifier for the manufacturing experiment
+
+        Attributes:
+            static_data: Loaded static measurements (process parameters, quality data)
+            serial_data: Loaded time series data (pressure, velocity, volume over time)
+
+        Note:
+            File loading occurs once during initialization. If files are missing
+            or corrupted, the corresponding data attributes will be set to None.
+        """
+        super().__init__(upper_workpiece_id)
+        # Populate data attributes by loading from files during initialization
         self.static_data = self._get_static_data()
         self.serial_data = self._get_serial_data()
 
-    def _get_static_data(self) -> dict | None:
-        """Load and return static data for injection molding (from static_data.csv)."""
-        csv_path = self._get_static_data_path()
-        df_static = pd.read_csv(csv_path, sep=";")
+    @abstractmethod
+    def _get_position(self) -> str:
+        """
+        Return the position identifier for this injection molding recording.
 
-        # Check for the ID in the upper_workpiece_id column (handle both int and string)
+        Each manufacturing experiment produces two workpieces - upper and lower -
+        that are injection molded separately. The position identifier determines
+        which workpiece's data files are accessed and corresponds to the directory
+        structure in the data filesystem.
+
+        The position affects the data format and available measurements due to
+        different molding processes and tooling configurations between upper
+        and lower workpiece production.
+
+        Returns:
+            str: Position identifier - either "upper" or "lower"
+        """
+        pass
+
+    def _get_class_name(self) -> str:
+        """
+        Return the hierarchical class identifier for configuration lookup.
+
+        This identifier is used to navigate the YAML configuration files
+        (processing.yml and extraction.yml) to find the appropriate settings
+        for this specific recording type. The path follows the structure:
+        process_type.position (e.g., 'injection_molding.upper_workpiece',
+        'injection_molding.lower_workpiece').
+
+        Returns:
+            str: Dot-separated hierarchical path used to locate this recording's
+                 settings in YAML configuration files.
+        """
+        return f"injection_molding.{self._get_position()}_workpiece"
+
+    def _get_static_data(self) -> dict | None:
+        """
+        Load and return static data for this injection molding recording.
+
+        Reads static measurement data from workpiece-specific static_data.csv files,
+        filtering by upper_workpiece_id. Static data contains process parameters,
+        quality measurements, and file references that remain constant throughout
+        the injection molding cycle.
+
+        The method handles both integer and string ID matching to ensure
+        robust data retrieval across different CSV formatting approaches.
+
+        Returns:
+            dict or None: Dictionary containing static measurements including
+                         file_name, class_value, dates, and all process parameters.
+                         Returns None if no matching data is found for this workpiece.
+
+        Raises:
+            FileNotFoundError: If static_data.csv cannot be located
+            pandas.errors.ParserError: If CSV file is malformed
+        """
+        # Load static data from workpiece-specific CSV file
+        static_data_path = get_injection_molding_static_data(self._get_position())
+        df = pd.read_csv(static_data_path, sep=";")
+
+        # Filter by upper_workpiece_id (handle both int and string types)
         target_id = self.upper_workpiece_id
-        matching_rows = df_static[
-            (df_static["upper_workpiece_id"] == target_id)
-            | (df_static["upper_workpiece_id"] == str(target_id))
+        matching_rows = df[
+            (df[CSV.upper_workpiece_id] == target_id)
+            | (df[CSV.upper_workpiece_id] == str(target_id))
         ]
 
         if matching_rows.empty:
             return None
 
         # Get the first matching row
-        static = matching_rows.iloc[0]
+        static_data = matching_rows.iloc[0]
 
-        # Create static data dict
-        static_data_cols = {
-            "file_name",
-            "lower_workpiece_id",
-            "class_value",
-            "date",
-            "time",
-            "file_name_h5",
-            "upper_workpiece_id",  # Add this to excluded cols
+        # Define basic static attributes to exclude from measurements
+        basic_static_cols = {
+            CSV.file_name,
+            CSV.lower_workpiece_id,
+            CSV.class_value,
+            CSV.date,
+            CSV.time,
+            CSV.file_name_h5,
+            CSV.upper_workpiece_id,
         }
 
-        # Basic static attributes
+        # Build result dictionary with basic static attributes
         result = {
-            "file_name": static["file_name"],
-            "lower_workpiece_id": static["lower_workpiece_id"],
-            "class_value": static["class_value"],
-            "date": static["date"],
-            "time": static["time"],
-            "file_name_h5": static["file_name_h5"],
+            CSV.file_name: static_data[CSV.file_name],
+            CSV.lower_workpiece_id: static_data[CSV.lower_workpiece_id],
+            CSV.class_value: static_data[CSV.class_value],
+            CSV.date: static_data[CSV.date],
+            CSV.time: static_data[CSV.time],
+            CSV.file_name_h5: static_data[CSV.file_name_h5],
         }
 
-        # Add all measurements (everything else)
+        # Add all measurement columns (everything not in basic static attributes)
         measurements = {
-            col: static[col] for col in static.index if col not in static_data_cols
+            col: static_data[col]
+            for col in static_data.index
+            if col not in basic_static_cols
         }
         result.update(measurements)
 
         return result
-
-    def get_measurements(self):
-        """Return dict of measurement values for this workpiece"""
-        if self.static_data is None:
-            return {}
-
-        # Filter out the basic static attributes to get just measurements
-        basic_attrs = {
-            "file_name",
-            "lower_workpiece_id",
-            "class_value",
-            "date",
-            "time",
-            "file_name_h5",
-        }
-        return {k: v for k, v in self.static_data.items() if k not in basic_attrs}
-
-    @abstractmethod
-    def _get_static_data_path(self):
-        """Return path to static data CSV file"""
-        pass
 
 
 class InjectionMoldingUpper(InjectionMoldingBase):
@@ -119,34 +193,57 @@ class InjectionMoldingUpper(InjectionMoldingBase):
 
     Loads time series data including pressure, velocity, volume, and state
     measurements from CSV files in the upper_workpiece serial_data directory.
-    Includes state information not available in lower workpiece data.
+
+    Note: Upper workpiece data may include state information that is not
+    available in the lower workpiece data. Hence, it is not loaded by default
+    to maintain consistency with the lower recording data.
     """
 
-    def _get_static_data_path(self):
-        return str(get_injection_molding_static_data("upper"))
-
-    def _get_class_name(self):
-        return "injection_molding.upper_workpiece"
+    def _get_position(self) -> str:
+        """Return position identifier for upper workpiece injection molding."""
+        return "upper"
 
     def _get_serial_data(self) -> dict | None:
-        """Load and return serial data for upper injection molding (from CSV files)."""
+        """
+        Load and return time series data for upper workpiece injection molding.
+
+        Reads time series measurements from CSV files in the upper_workpiece
+        serial_data/ directory. The filename is obtained from static data and
+        contains pressure, velocity, volume, and state measurements sampled
+        at regular intervals during the injection molding cycle.
+
+        Upper workpiece data includes state information that tracks the
+        injection molding machine's operational mode throughout the cycle.
+
+        Returns:
+            dict or None: Dictionary with time series data where keys are parameter
+                         names (time, injection_pressure_target, injection_pressure_actual,
+                         injection_velocity, melt_volume, state) and values are lists
+                         of measurements ordered chronologically. Returns None if static
+                         data is unavailable or CSV file cannot be read.
+
+        Raises:
+            FileNotFoundError: If the CSV file specified in static data is missing
+            pandas.errors.ParserError: If CSV file is malformed
+        """
         # Need static data first to get file name
         if self.static_data is None:
             return None
 
-        csv_path = str(
-            get_injection_molding_serial_data("upper", self.static_data["file_name"])
+        # Load time series data from CSV file
+        serial_data_path = get_injection_molding_serial_data(
+            self._get_position(), self.static_data[CSV.file_name]
         )
-        df_cycle = pd.read_csv(csv_path, index_col=0)
+        df = pd.read_csv(serial_data_path, index_col=0)
 
-        # Return raw time series dict
+        # Return time series data using consistent attribute names
         return {
-            IMA.time: df_cycle[IMA.time].tolist(),
-            IMA.pressure_target: df_cycle[IMA.pressure_target].tolist(),
-            IMA.pressure_actual: df_cycle[IMA.pressure_actual].tolist(),
-            IMA.velocity: df_cycle[IMA.velocity].tolist(),
-            IMA.volume: df_cycle[IMA.volume].tolist(),
-            IMA.state: df_cycle[IMA.state].tolist(),
+            IMA.time: df[IMA.time].tolist(),
+            IMA.pressure_target: df[IMA.pressure_target].tolist(),
+            IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
+            IMA.velocity: df[IMA.velocity].tolist(),
+            IMA.volume: df[IMA.volume].tolist(),
+            IMA.state: df[IMA.state].tolist(),
         }
 
 
@@ -159,27 +256,47 @@ class InjectionMoldingLower(InjectionMoldingBase):
     excludes state information and uses different file format.
     """
 
-    def _get_static_data_path(self):
-        return str(get_injection_molding_static_data("lower"))
-
-    def _get_class_name(self):
-        return "injection_molding.lower_workpiece"
+    def _get_position(self) -> str:
+        """Return position identifier for lower workpiece injection molding."""
+        return "lower"
 
     def _get_serial_data(self) -> dict | None:
-        """Load and return serial data for lower injection molding (from TXT files)."""
+        """
+        Load and return time series data for lower workpiece injection molding.
+
+        Reads time series measurements from custom TXT files in the lower_workpiece
+        serial_data/ directory. The filename is obtained from static data and
+        contains semicolon-delimited data with a special "-start data-" marker
+        indicating where the actual measurement data begins.
+
+        Lower workpiece data excludes state information but includes the same
+        pressure, velocity, and volume measurements as upper workpiece data.
+
+        Returns:
+            dict or None: Dictionary with time series data where keys are parameter
+                         names (time, injection_pressure_target, injection_pressure_actual,
+                         injection_velocity, melt_volume) and values are lists of
+                         measurements ordered chronologically. Returns None if static
+                         data is unavailable or TXT file cannot be read.
+
+        Raises:
+            FileNotFoundError: If the TXT file specified in static data is missing
+            ValueError: If "-start data-" marker is not found in the file
+        """
         # Need static data first to get file name
         if self.static_data is None:
             return None
 
-        txt_path = str(
-            get_injection_molding_serial_data("lower", self.static_data["file_name"])
+        # Load time series data from custom TXT file
+        serial_data_path = get_injection_molding_serial_data(
+            self._get_position(), self.static_data[CSV.file_name]
         )
 
-        # Read the file and find the data section
-        with open(txt_path, "r") as file:
+        # Read file and locate data section
+        with open(serial_data_path, "r") as file:
             lines = file.readlines()
 
-        # Find where data starts (after "-start data-")
+        # Find where actual data starts (after "-start data-" marker)
         data_start_idx = None
         for i, line in enumerate(lines):
             if "-start data-" in line:
@@ -187,9 +304,9 @@ class InjectionMoldingLower(InjectionMoldingBase):
                 break
 
         if data_start_idx is None:
-            raise ValueError(f"Could not find data section in {txt_path}")
+            raise ValueError(f"Could not find data section in {serial_data_path}")
 
-        # Parse data lines (semicolon-separated)
+        # Parse semicolon-separated data lines
         data_lines = lines[data_start_idx:]
         data_rows = []
         for line in data_lines:
@@ -197,8 +314,8 @@ class InjectionMoldingLower(InjectionMoldingBase):
                 values = line.strip().split(";")
                 data_rows.append([float(v) for v in values])
 
-        # Convert to DataFrame
-        df_cycle = pd.DataFrame(
+        # Convert to DataFrame with proper column names
+        df = pd.DataFrame(
             data_rows,
             columns=[
                 IMA.time,
@@ -209,11 +326,11 @@ class InjectionMoldingLower(InjectionMoldingBase):
             ],
         )
 
-        # Return raw time series dict
+        # Return time series data (note: no state data for lower workpiece)
         return {
-            IMA.time: df_cycle[IMA.time].tolist(),
-            IMA.pressure_target: df_cycle[IMA.pressure_target].tolist(),
-            IMA.pressure_actual: df_cycle[IMA.pressure_actual].tolist(),
-            IMA.velocity: df_cycle[IMA.velocity].tolist(),
-            IMA.volume: df_cycle[IMA.volume].tolist(),
+            IMA.time: df[IMA.time].tolist(),
+            IMA.pressure_target: df[IMA.pressure_target].tolist(),
+            IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
+            IMA.velocity: df[IMA.velocity].tolist(),
+            IMA.volume: df[IMA.volume].tolist(),
         }
