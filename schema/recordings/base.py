@@ -22,6 +22,23 @@ class BaseRecording(ABC):
         self.serial_data: dict | None = None
 
     @abstractmethod
+    def _get_class_name(self) -> str:
+        """
+        Return the hierarchical class identifier for configuration lookup.
+
+        This identifier is used to navigate the YAML configuration files
+        (processing.yml and extraction.yml) to find the appropriate settings
+        for this specific recording type. The path follows the structure:
+        process_type.workpiece_or_position (e.g., 'injection_molding.upper_workpiece',
+        'screw_driving.left').
+
+        Returns:
+            str: Dot-separated hierarchical path used to locate this recording's
+                settings in YAML configuration files.
+        """
+        pass
+
+    @abstractmethod
     def _get_static_data(self) -> dict | None:
         """
         Load and return static data for this recording (from static_data.csv).
@@ -53,11 +70,6 @@ class BaseRecording(ABC):
                         and values are lists of measurements ordered chronologically.
                         Returns None if no serial data is available for this recording.
         """
-        pass
-
-    @abstractmethod
-    def _get_class_name(self):
-        """Return the class name for config lookup (e.g., 'injection_upper')."""
         pass
 
     def get_data(self):
