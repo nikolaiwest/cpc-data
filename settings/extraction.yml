@@ -13,24 +13,19 @@ injection_molding:
         meta: ["t007"]
     # SERIAL DATA: Extraction configuration for the time series data
     injection_pressure_target:
-      use_series: true
-      method: "raw"  # options: "raw", "paa", "pca", "statistic", "tsfresh", "catch22"
-      # Additional attributes for the methods (available for all series)
+      method: "raw"  # eiother "raw", "paa", "pca", "statistic", "tsfresh" or "catch22"
+      # Optional attributes for the respective methods (available for all series)
       paa_target_length: 200           # for paa method - target length after aggregation
       pca_n_components: 24             # for pca method - number of principal components
       use_catch24: true                # for catch22 method - include catch24 features (2 extra attributes)
       tsfresh_feature_set: 'efficient' # for tsfresh method - 'minimal', 'efficient', 'comprehensive'
     injection_pressure_actual:
-      use_series: true
       method: "raw" 
     melt_volume:
-      use_series: true
       method: "raw"
     injection_velocity:
-      use_series: true
       method: "raw"
-    state: 
-      use_series: false # not used, since also not available for lower workpiece
+
   lower_workpiece:
     # STATIC DATA: Extraction configuration for static data from the CSV file 
     static_data:
@@ -42,6 +37,8 @@ injection_molding:
         actual: ["T801I", "T802I", "T803I", "T804I", "T805I", "T806I", "T831I", "T832I", "T833I", "T834I", "T835I", "T836I", "T837I", "t4052", "V301I", "t4015", "V4065", "p4055", "p4072", "t4018", "V4062", "t4012"]
         meta: ["t007"]
     # SERIAL DATA: Extraction configuration for the time series data
+    time:
+      use_series: false
     injection_pressure_target:
       use_series: true
       method: "raw" 
@@ -69,6 +66,8 @@ screw_driving:
         actual: []
         meta: []
     # SERIAL DATA: Extraction configuration for the time series data
+    time:
+      use_series: false
     torque:
       use_series: true
       method: "raw"  
@@ -95,6 +94,8 @@ screw_driving:
         actual: []
         meta: []
     # SERIAL DATA: Extraction configuration for the time series data
+    time:
+      use_series: false
     torque:
       use_series: true
       method: "raw"  
