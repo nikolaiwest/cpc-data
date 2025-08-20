@@ -1,9 +1,9 @@
 # Extraction settings for feature engineering  
 
 injection_molding:
-  upper_workpiece:
-    # STATIC DATA: Extraction configuration for static data from the CSV file 
-    static_data:
+
+  upper_workpiece: # UPPER
+    static_data: # Extraction configuration for static data from the CSV file 
       use_data: true
       method: ["quality", "target", "actual"] # ["quality", "target", "actual"]
       groups: 
@@ -11,9 +11,8 @@ injection_molding:
         target: ["T801", "T802", "T803", "T804", "T805", "T806", "T831", "T832", "T833", "T834", "T835", "T836", "T837", "V403", "Q304", "Q305", "V304", "V305", "Q311", "Q312", "Q313", "p311", "p312", "p313", "t311", "t312", "t313"]
         actual: ["T801I", "T802I", "T803I", "T804I", "T805I", "T806I", "T831I", "T832I", "T833I", "T834I", "T835I", "T836I", "T837I", "t4052", "V301I", "t4015", "V4065", "p4055", "p4072", "t4018", "V4062", "t4012"]
         meta: ["t007"]
-    # SERIAL DATA: Extraction configuration for the time series data
     injection_pressure_target:
-      method: "raw"  # eiother "raw", "paa", "pca", "statistic", "tsfresh" or "catch22"
+      method: "raw"  # either "raw", "paa", "pca", "statistical", "tsfresh" or "catch22"
       # Optional attributes for the respective methods (available for all series)
       paa_target_length: 200           # for paa method - target length after aggregation
       pca_n_components: 24             # for pca method - number of principal components
@@ -25,38 +24,53 @@ injection_molding:
       method: "raw"
     injection_velocity:
       method: "raw"
+    # Not used by default
+    # - time
+    # - state
 
-  lower_workpiece:
-    # STATIC DATA: Extraction configuration for static data from the CSV file 
-    static_data:
+  lower_workpiece: # LOWER
+    static_data: 
       use_data: true
-      method: ["quality", "target", "actual"] # ["quality", "target", "actual"]
+      method: ["quality", "target", "actual"] # ["quality", "target", "actual", "meta"]
       groups: 
         quality: ["weight"] 
         target: ["T801", "T802", "T803", "T804", "T805", "T806", "T831", "T832", "T833", "T834", "T835", "T836", "T837", "V403", "Q304", "Q305", "V304", "V305", "Q311", "Q312", "Q313", "p311", "p312", "p313", "t311", "t312", "t313"]
         actual: ["T801I", "T802I", "T803I", "T804I", "T805I", "T806I", "T831I", "T832I", "T833I", "T834I", "T835I", "T836I", "T837I", "t4052", "V301I", "t4015", "V4065", "p4055", "p4072", "t4018", "V4062", "t4012"]
         meta: ["t007"]
-    # SERIAL DATA: Extraction configuration for the time series data
-    time:
-      use_series: false
     injection_pressure_target:
-      use_series: true
       method: "raw" 
     injection_pressure_actual:
-      use_series: true
       method: "raw" 
     melt_volume:
-      use_series: true
       method: "raw"
     injection_velocity:
-      use_series: true
       method: "raw"
-    state: 
-      use_series: false # not available for lower workpiece 
+    # Not used by default
+    # - time
+    # - state
 
 screw_driving: 
-  left:
-    # STATIC DATA: Extraction configuration for static data from the CSV file 
+  left: # LEFT 
+    static_data: # Extraction configuration for static data from the CSV file 
+      use_data: true
+      method: ["quality", "target", "actual", "meta"] # ["quality", "target", "actual"]
+      groups: 
+        quality: ["quality code"] 
+        target: []
+        actual: []
+        meta: []
+    torque:
+      method: "raw"  
+    angle:
+      method: "raw"
+    gradient:
+      method: "raw"
+    # Not used by default
+    # - time
+    # - torqueRed
+    # - angleRed
+
+  right: # RIGHT
     static_data: 
       use_data: true
       method: ["quality", "target", "actual", "meta"] # ["quality", "target", "actual"]
@@ -65,49 +79,13 @@ screw_driving:
         target: []
         actual: []
         meta: []
-    # SERIAL DATA: Extraction configuration for the time series data
-    time:
-      use_series: false
     torque:
-      use_series: true
       method: "raw"  
     angle:
-      use_series: true
       method: "raw"
     gradient:
-      use_series: true
       method: "raw"
-    time:
-      use_series: false  # Time axis, usually not used as feature
-    torqueRed:
-      use_series: false  # Reduced/derived torque, skip by default
-    angleRed:
-      use_series: false  # Reduced/derived angle, skip by default
-  right:
-    # STATIC DATA: Extraction configuration for static data from the CSV file 
-    static_data: 
-      use_data: true
-      method: ["quality", "target", "actual", "meta"] # ["quality", "target", "actual"]
-      groups: 
-        quality: ["quality code"] 
-        target: []
-        actual: []
-        meta: []
-    # SERIAL DATA: Extraction configuration for the time series data
-    time:
-      use_series: false
-    torque:
-      use_series: true
-      method: "raw"  
-    angle:
-      use_series: true
-      method: "raw"
-    gradient:
-      use_series: true
-      method: "raw"
-    time:
-      use_series: false  # Time axis, usually not used as feature
-    torqueRed:
-      use_series: false  # Reduced/derived torque, skip by default
-    angleRed:
-      use_series: false  # Reduced/derived angle, skip by default
+    # Not used by default
+    # - time
+    # - torqueRed
+    # - angleRed

@@ -1,0 +1,21 @@
+# Preliminary thoughts on preprocessing as discussed with Kassel
+
+sampling_scenario_01: 
+  processing_file: processing_config_01.yml # default mit raw, alle pca, etc.
+  extraction_file: extraction_config_01.yml 
+
+  # Simple test: 5 stück (jeweils für upper und lower)
+  class_names: ["recyclate_100", "base"]
+  class_values: [1, 0]
+  target_size: [50 , 50 ] # SMOTE
+
+  # binary: alle von einer Klasse vs. base 
+  class_names : ["glass_fiber_10","glass_fiber_15","glass_fiber_20", ...,"base"]
+  class_values : [1, 1, 1, ..., 0]
+
+  # multiclass: Idiotentest: die auffälligsten vs base mit [0, 1, 2, 3, 4, 5]
+  sapling_scenario_name:
+    glass_fiber_10: 0
+    glass_fiber_20: 0
+    glass_fiber_15: 0 
+    baseline: 1
