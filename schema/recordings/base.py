@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 
-import yaml
-
-from extraction.apply import apply_extraction_pipeline
-from processing.apply import apply_processing_pipeline
+from extraction.apply import apply_extraction
+from processing.apply import apply_processing
 from settings import get_extraction_settings, get_processing_settings
 
 
@@ -78,60 +76,35 @@ class BaseRecording(ABC):
         """
         Extract processed and transformed features from this recording's time series data.
 
-        Applies a two-stage pipeline:
-        1. Processing: Data cleaning, normalization, and preparation
-        2. Extraction: Feature extraction and transformation
+        Applies a two-stage pipeline with full series context:
+        1. Processing: Data cleaning, normalization, and preparation across all series
+        2. Extraction: Feature extraction and transformation with cross-series awareness
 
-        Both stages are configured via YAML files and applied per time series parameter.
+        Both stages receive the complete series dictionary (including time data) enabling
+        time-aware operations like resampling and cross-series normalization.
+        Configuration is loaded from YAML files based on the recording's class hierarchy.
 
         Returns:
-            dict or None: Dictionary where keys are parameter names and values are
-                         the processed/extracted features. Returns None if no serial
-                         data is available for processing.
+            dict or None: Dictionary where keys are series names and values are
+                        the processed/extracted features. Only includes series with
+                        use_series=True in extraction config. Returns None if no serial
+                        data is available for processing.
+
+        Pipeline Interface:
+            - apply_processing_pipeline(series_dict, config_dict) -> processed_series_dict
+            - apply_extraction_pipeline(series_dict, config_dict) -> extracted_features_dict
         """
         # Check if serial data is available
         if self.serial_data is None:
             return None
 
-        # Get configuration settings
-        processing_settings = get_processing_settings()
-        extraction_settings = get_extraction_settings()
+        # Get configuration settings with class-specific settings
+        recording_type, position_value = self._get_class_name().split(".")
+        processing_settings = get_processing_settings()[recording_type][position_value]
+        extraction_settings = get_extraction_settings()[recording_type][position_value]
 
-        # Navigate to class-specific settings
-        class_path = self._get_class_name().split(".")
-        class_processing_config = processing_settings
-        class_extraction_config = extraction_settings
+        # Apply two-stage pipeline with full series context
+        processed_data = apply_processing(self.serial_data, processing_settings)
+        extracted_data = apply_extraction(processed_data, extraction_settings)
 
-        for path_part in class_path:
-            class_processing_config = class_processing_config.get(path_part, {})
-            class_extraction_config = class_extraction_config.get(path_part, {})
-
-        # Apply processing and extraction to each time series
-        results = {}
-        for series_name, series_data in self.serial_data.items():
-            if series_data is None:
-                continue
-
-            # Get series-specific configurations
-            processing_config = class_processing_config.get(series_name, {})
-            extraction_config = class_extraction_config.get(series_name, {})
-
-            # Skip series if not configured for extraction
-            if not extraction_config.get("use_series", False):
-                continue
-
-            # Step 1: Apply processing pipeline
-            processed_data = apply_processing_pipeline(
-                series_data,
-                processing_config,
-            )
-
-            # Step 2: Apply extraction pipeline
-            extracted_data = apply_extraction_pipeline(
-                processed_data,
-                extraction_config,
-            )
-
-            results[series_name] = extracted_data
-
-        return results if results else None
+        return extracted_data

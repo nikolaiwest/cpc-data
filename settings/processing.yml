@@ -1,208 +1,143 @@
-# Processing settings for data preparation
-# Applied at individual data class level to clean and standardize time series
+# Processing Pipeline Configuration
+#
+# This file defines the data preparation steps applied to manufacturing time series
+# before feature extraction. Processing occurs in three sequential stages:
+#
+# 1. CLEANING: remove_negative_values
+#    - Handles domain-specific constraints (e.g., torque shouldn't be negative)
+#    - Options: replace with value, set to None, or keep unchanged
+#
+# 2. TEMPORAL STANDARDIZATION: resample_uniform_times  
+#    - Converts irregular sampling to consistent time intervals
+#    - Uses linear interpolation to estimate values at target intervals
+#    - Required for screw driving data due to missing timestamps
+#
+# 3. LENGTH STANDARDIZATION: resample_equal_lengths
+#    - Ensures all series have identical number of data points
+#    - Supports truncation (cutoff_position) and padding (padding_pos/val)
+#    - Essential for batch processing and feature extraction consistency
+#
+# PROCESS-SPECIFIC NOTES:
+# - Injection molding: Already uniform intervals, only needs length standardization
+# - Screw driving: Irregular intervals require full processing pipeline
+# - Time series: Automatically excluded from processing (used as context only)
+#
+# TARGET LENGTHS:
+# - Upper workpiece: 2048 samples (4 analysis windows of 512 each)
+# - Lower workpiece: 512 samples (1 analysis window for comparison)  
+# - Screw driving: 2000 samples (maximum program length)
 
 injection_molding:
-  upper_workpiece:
+
+  upper_workpiece: # UPPER
     injection_pressure_target:
-      remove_negative_values:
-        how: null  # dont remove negative values in injection molding!
-      apply_equal_distance: false
-        # target_distance: 0.01  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 2048      # four times 512 windows: target number of samples
-        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
-        padding_val: 0.0         # value to use for padding
-        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
-          
+      remove_negative_values: false # Pressure can be negative during injection molding
+      resample_uniform_times: false # Time steps are equal (0.01) and require no proceesing 
+      resample_equal_lengths:
+        target_length: 2048         # target number of samples: here four windows of 512 length 
+        padding_val: 0.0            # substitute value to use for padding: here 0.0 (default)
+        cutoff_position: post       # where to cut if series too long: 'post' (default) or 'pre'
+        padding_pos: post           # where to pad if series too short: 'post' (default) or 'pre' 
     injection_pressure_actual:
-      remove_negative_values:
-        how: null  # dont remove negative values in injection molding!
-      apply_equal_distance: false
-        # target_distance: 0.01  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 2048      # four times 512 windows: target number of samples
-        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
-        padding_val: 0.0         # value to use for padding
-        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
-        
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 2048 
     melt_volume:
-      remove_negative_values:
-        how: null  # dont remove negative values in injection molding!
-      apply_equal_distance: false
-        # target_distance: 0.01  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 2048      # four times 512 windows: target number of samples
-        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
-        padding_val: 0.0         # value to use for padding
-        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
-        
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 2048
     injection_velocity:
-      remove_negative_values:
-        how: null  # dont remove negative values in injection molding!
-      apply_equal_distance: false
-        # target_distance: 0.01  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 2048      # four times 512 windows: target number of samples
-        cutoff_position: post    # 'pre', 'post' - where to cut if series too long
-        padding_val: 0.0         # value to use for padding
-        padding_pos: post        # 'pre', 'post' - where to add padding if series too short
-        
-    state: # Kept for completeness but unused, since its not available for lower 
-      remove_negative_values: false  # Not used
-      apply_equal_distance: false    # Not used
-      apply_equal_lengths: false     # Not used
-    
-  lower_workpiece:
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 2048
+    # Not used by default
+    # - time
+    # - state
+
+  lower_workpiece: # LOWER
     injection_pressure_target:
-      remove_negative_values:
-        how: null # dont remove negative values... 
-      apply_equal_distance: false
-        # target_distance: 0.03  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 512  # using 512 (1 window) for comparison with "upper"
-        cutoff_position: post
+      remove_negative_values: false # Pressure can be negative during injection molding
+      resample_uniform_times: false # Time steps are equal (0.01) and require no proceesing 
+      resample_equal_lengths:
+        target_length: 2048         # target number of samples: here four windows of 512 length 
         padding_val: 0.0
+        cutoff_position: post
         padding_pos: post
-        
     injection_pressure_actual:
-      remove_negative_values:
-        how: null # dont remove negative values... 
-      apply_equal_distance: false
-        # target_distance: 0.03  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 512  # using 512 (1 window) for comparison with "upper"
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 512 
     melt_volume:
-      remove_negative_values: false  # Volume should always be positive
-      apply_equal_distance: false
-        # target_distance: 0.03  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 512  # using 512 (1 window) for comparison with "upper"
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 512 
     injection_velocity:
-      remove_negative_values:
-        how: null # dont remove negative values... 
-      apply_equal_distance: false
-        # target_distance: 0.03  # Injection molding has same distance, no proceesing needed 
-      apply_equal_lengths:
-        target_length: 512  # using 512 (1 window) for comparison with "upper"
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
-    state: # only existent for upper workpiece 
-      remove_negative_values: false  # Not available for lower workpiece
-      apply_equal_distance: false
-      apply_equal_lengths: false
+      remove_negative_values: false 
+      resample_uniform_times: false
+      resample_equal_lengths:
+        target_length: 512 
+    # Not used by default
+    # - time
+    # - state
 
 screw_driving:
-  left:
-    torque:
-      remove_negative_values: false
-      apply_equal_distance:
-        target_distance: 0.0012
-      apply_equal_lengths:
-        target_length: 2000     # TEST: Standardize torque to 500 samples
-        cutoff_position: post   # Cut from end if too long
-        padding_val: 0.0        # Pad with zeros if too short
-        padding_pos: post       # Pad at end
-          
-        
-    angle:
-      remove_negative_values: false  # Angle can be negative (indicates direction)
-      apply_equal_distance:
-        target_distance: 0.0012
-      apply_equal_lengths:
-        target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
-    gradient:
-      remove_negative_values: false  # Gradient can be negative
-      apply_equal_distance:
-        target_distance: 0.0012
-      apply_equal_lengths:
-        target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
-    time:
-      remove_negative_values: false  # Time should not be negative anyway
-      apply_equal_distance:
-        target_distance: 0.0012
-      apply_equal_lengths:           # But might need equal length
-        target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
-    torqueRed:
-      remove_negative_values: false  # Not used by default
-      apply_equal_distance: false
-      apply_equal_lengths: false
-      
-    angleRed:
-      remove_negative_values: false  # Not used by default
-      apply_equal_distance: false
-      apply_equal_lengths: false
-    
-  right:
+  left: # LEFT
     torque:
       remove_negative_values:
-        how: "clip"
-        threshold: 0.0
-      apply_equal_distance:
-        target_distance: 0.0012
-      apply_equal_lengths:
-        target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
+        replacement_value: 0.0      # Torque should not be negative during fastening steps
+      resample_uniform_times:
+        target_distance: 0.0012     # Target recording time (0.0012) is sometimes missing
+      resample_equal_lengths:
+        target_length: 2000         # target number of samples: here max program length (2000)
+        padding_val: 0.0            # substitute value to use for padding: here 0.0 (default)
+        cutoff_position: post       # where to cut if series too long: 'post' (default) or 'pre'
+        padding_pos: post           # where to pad if series too short: 'post' (default) or 'pre' 
     angle:
-      remove_negative_values: false
-      apply_equal_distance:
+      remove_negative_values: false # Angle can be negative (indicates direction)
+      resample_uniform_times:
         target_distance: 0.0012
-      apply_equal_lengths:
+      resample_equal_lengths:
         target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
     gradient:
       remove_negative_values: false
-      apply_equal_distance:
+      resample_uniform_times:
         target_distance: 0.0012
-      apply_equal_lengths:
-        target_length: 2000
-        cutoff_position: post
+      resample_equal_lengths:
+        target_length: 2000 
+    # Not used by default
+    # - time
+    # - torqueRed
+    # - angleRed
+
+  right: # RIGHT
+    torque:
+      remove_negative_values:
+        replacement_value: 0.0      # Torque should not be negative during fastening steps
+      resample_uniform_times:
+        target_distance: 0.0012     # Target recording time (0.0012) is sometimes missing
+      resample_equal_lengths:
+        target_length: 2000         # target number of samples: here max program length (2000)
         padding_val: 0.0
+        cutoff_position: post
         padding_pos: post
-        
-    time:
+    angle:
       remove_negative_values: false
-      apply_equal_distance: 
+      resample_uniform_times:
         target_distance: 0.0012
-      apply_equal_lengths:
+      resample_equal_lengths:
         target_length: 2000
-        cutoff_position: post
-        padding_val: 0.0
-        padding_pos: post
-        
-    torqueRed:
-      remove_negative_values: false  # Not used by default
-      apply_equal_distance: false
-      apply_equal_lengths: false
-      
-    angleRed:
-      remove_negative_values: false  # Not used by default
-      apply_equal_distance: false
-      apply_equal_lengths: false
+    gradient:
+      remove_negative_values: false
+      resample_uniform_times:
+        target_distance: 0.0012
+      resample_equal_lengths:
+        target_length: 2000
+    # Not used by default
+    # - time
+    # - torqueRed
+    # - angleRed
