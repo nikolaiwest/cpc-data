@@ -1,6 +1,16 @@
-numpy>=2.3.0
+# Core dependencies
+numpy>=2.2.6
 pandas>=2.3.0
-matplotlib>=3.10.0
-PyYAML>=6.0.0
-tqdm>=4.67.0
-scikit-learn>=1.7.0
+matplotlib>=3.10.3
+PyYAML>=6.0.2
+tqdm>=4.67.1
+scikit-learn>=1.7.1
+
+# Scientific computing
+scipy>=1.16.1
+
+# Feature extraction libraries
+tsfresh>=0.21.0
+
+# Optional: For extended screw driving analysis
+# pyscrew

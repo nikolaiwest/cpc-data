@@ -16,8 +16,9 @@ injection_molding:
       # Optional attributes for the respective methods (available for all series)
       paa_target_length: 200           # for PAA (picewise aggregate approximaion): target length after aggregation
       pca_n_components: 24             # for PCA (principle component analysis): target number of principal components
-      use_catch24: true                # for catch22 method - include catch24 features (2 extra attributes)
+      statistical_features: ["basic"]  # for statistical methods with feature types: "basic", "time" and "frequency"
       tsfresh_feature_set: 'efficient' # for tsfresh method - 'minimal', 'efficient', 'comprehensive'
+      use_catch24: true                # for catch22 method - include catch24 features (2 extra attributes)
     injection_pressure_actual:
       method: "raw" 
     melt_volume:
