@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 
-def extract_pca(data: list, n_components: int = 24, **kwargs) -> list:
+def extract_pca(data: list, pca_n_components: int = 24, **kwargs) -> list:
     """
     Extract principal components from time series data for dimensionality reduction.
 
@@ -16,12 +16,12 @@ def extract_pca(data: list, n_components: int = 24, **kwargs) -> list:
 
     Args:
         data: Processed time series data as list of values
-        n_components: Number of principal components to extract (must be <= len(data))
+        pca_n_components: Number of principal components to extract (must be <= len(data))
         **kwargs: Additional parameters (ignored)
 
     Returns:
         list: Principal component values representing the transformed data.
-              Length will be min(n_components, len(data)).
+              Length will be min(pca_n_components, len(data)).
     """
     # Input validation
     if not data or len(data) == 0:
@@ -33,26 +33,26 @@ def extract_pca(data: list, n_components: int = 24, **kwargs) -> list:
     # Convert to numpy array and reshape for PCA (each point as a feature)
     data_array = np.array(data).reshape(1, -1)  # 1 sample, n features
 
-    # Ensure n_components doesn't exceed data length
-    n_components = min(n_components, len(data))
+    # Ensure pca_n_components doesn't exceed data length
+    pca_n_components = min(pca_n_components, len(data))
 
     try:
         # Apply sklearn PCA
-        pca = PCA(n_components=n_components)
+        pca = PCA(n_components=pca_n_components)
         pca_result = pca.fit_transform(data_array)
 
         # Return the transformed values
         result = pca_result[0].tolist()
 
         # Pad with zeros if needed
-        while len(result) < n_components:
+        while len(result) < pca_n_components:
             result.append(0.0)
 
-        return result[:n_components]
+        return result[:pca_n_components]
 
     except Exception as e:
         # Fallback if PCA fails
         print(
             f"Warning: PCA computation failed ({e}), returning truncated original data"
         )
-        return data[:n_components] + [0.0] * max(0, n_components - len(data))
+        return data[:pca_n_components] + [0.0] * max(0, pca_n_components - len(data))
