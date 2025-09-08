@@ -340,7 +340,7 @@ class ExperimentDataset:
 
         # Count how many experiments have each process type
         for experiment in self.experiments:
-            for process in experiment.get_available_processes():
+            for process in experiment.get_available_recordings():
                 available_processes[process] = available_processes.get(process, 0) + 1
 
         return {
