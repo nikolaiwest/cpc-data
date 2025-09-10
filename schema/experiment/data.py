@@ -76,7 +76,7 @@ class ExperimentData:
         for name, recording_obj in recordings.items():
             if (
                 recording_obj is not None
-                and recording_obj._get_time_series_data() is not None
+                and recording_obj._get_serial_data() is not None
             ):
                 available.append(name)
 

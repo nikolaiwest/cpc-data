@@ -73,6 +73,10 @@ def _should_skip_extraction(series_name: str, processed_series_dict: dict) -> bo
     Returns:
         bool: True if series should be skipped, False if extraction should proceed.
     """
+    # Skip for static_data since it's metadata, not time series
+    if series_name == "static_data":
+        return True
+
     # Skip if series not in processed data
     if series_name not in processed_series_dict:
         print(

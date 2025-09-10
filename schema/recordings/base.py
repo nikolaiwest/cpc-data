@@ -15,7 +15,7 @@ class BaseRecording(ABC):
         Args:
             upper_workpiece_id: Unique identifier for the manufacturing experiment.
         """
-        self.upper_workpiece_id = upper_workpiece_id
+        self.upper_workpiece_id = int(upper_workpiece_id)
 
         # Initialize empty data attributes, child classes will populate these
         self.static_data: dict | None = None
