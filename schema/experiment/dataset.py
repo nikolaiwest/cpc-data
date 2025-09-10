@@ -133,7 +133,7 @@ class ExperimentDataset:
             ...     filter_value=["glass_fiber_content_22", "glass_fiber_content_24"]
             ... )
         """
-        # Load class values using our new path utility! 🎉
+        # Load class values from csv file
         df = pd.read_csv(get_class_values(), index_col=0)
 
         # Apply filtering based on type
