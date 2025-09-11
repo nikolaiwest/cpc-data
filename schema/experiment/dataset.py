@@ -186,12 +186,17 @@ class ExperimentDataset:
 
         This aggregates time series and measurement data from all experiments
         in the dataset into a single DataFrame suitable for analysis.
-        Each row represents one experiment, columns are flattened features.
+        Each row represents one experiment with class values as the first columns
+        followed by flattened features.
 
         Returns:
-            pandas.DataFrame: Each row is an experiment, columns are features.
-                            Index contains the upper_workpiece_ids.
-                            Empty DataFrame if no experiments have data.
+            pandas.DataFrame: Each row is an experiment with:
+                            - First 5 columns: Class values (upper_workpiece_id,
+                            lower_workpiece_id, class_value_upper_work_piece,
+                            class_value_lower_work_piece, class_value_screw_driving)
+                            - Remaining columns: Flattened features from time series data
+                            - Default integer index (0, 1, 2, ...)
+                            - Empty DataFrame if no experiments have data
 
         Example:
             >>> dataset = ExperimentDataset.from_class_values(
@@ -199,24 +204,40 @@ class ExperimentDataset:
             ... )
             >>> features_df = dataset.get_data()
             >>> print(f"Dataset shape: {features_df.shape}")
-            >>> print(f"Available features: {list(features_df.columns)}")
+            >>> print(f"Class columns: {features_df.columns[:5].tolist()}")
+            >>> print(f"Feature columns: {features_df.columns[5:].tolist()}")
         """
         # Aggregate experiment-level results
         all_data = []
-        experiment_ids = []
 
         for experiment in self.experiments:
             exp_data = experiment.get_data()  # Get data from individual experiment
+
             if exp_data:  # Only include experiments that have data
-                # Flatten the nested dict structure into a single row
+                # Start with class values for this experiment
+                row_data = {}
+
+                # Add class values as first columns if available
+                if self.class_values_df is not None:
+                    try:
+                        class_row = self.class_values_df.loc[
+                            int(experiment.upper_workpiece_id)
+                        ]
+                        row_data.update(class_row.to_dict())
+                    except KeyError:
+                        print(
+                            f"Warning: No class values found for experiment {experiment.upper_workpiece_id}"
+                        )
+
+                # Flatten and add the experiment feature data
                 flattened = self._flatten_experiment_data(exp_data)
-                all_data.append(flattened)
-                experiment_ids.append(experiment.upper_workpiece_id)
+                row_data.update(flattened)
+                all_data.append(row_data)
 
         if not all_data:
             return pd.DataFrame()  # Return empty DataFrame if no data
 
-        return pd.DataFrame(all_data, index=experiment_ids)
+        return pd.DataFrame(all_data)  # Use default integer index
 
     def _flatten_experiment_data(self, exp_data: Dict) -> Dict:
         """
