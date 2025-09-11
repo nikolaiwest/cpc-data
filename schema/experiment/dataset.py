@@ -138,6 +138,14 @@ class ExperimentDataset:
 
         # Apply filtering based on type
         if filter_value is not None:
+            # Validate filter_type and filter_value compatibility
+            if isinstance(filter_value, list) and filter_type != "list":
+                raise ValueError(
+                    f"filter_value is a list but filter_type='{filter_type}'. "
+                    f"Use filter_type='list' when passing a list of values. "
+                    f"Got: {filter_value}"
+                )
+
             if class_column not in df.columns:
                 print(f"Warning: Column '{class_column}' not found in class_values.csv")
                 available_cols = list(df.columns)
