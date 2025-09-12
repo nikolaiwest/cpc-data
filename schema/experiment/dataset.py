@@ -138,6 +138,14 @@ class ExperimentDataset:
 
         # Apply filtering based on type
         if filter_value is not None:
+            # Validate filter_type and filter_value compatibility
+            if isinstance(filter_value, list) and filter_type != "list":
+                raise ValueError(
+                    f"filter_value is a list but filter_type='{filter_type}'. "
+                    f"Use filter_type='list' when passing a list of values. "
+                    f"Got: {filter_value}"
+                )
+
             if class_column not in df.columns:
                 print(f"Warning: Column '{class_column}' not found in class_values.csv")
                 available_cols = list(df.columns)
@@ -165,10 +173,18 @@ class ExperimentDataset:
         if sample_size and len(df) > sample_size:
             df = df.sample(n=sample_size, random_state=42)
 
-        # Create dataset from the filtered IDs
-        ids = df["upper_workpiece_id"].tolist()
+        # Filter out unused workpiece IDs
+        used_df = df[df["upper_workpiece_id"] != "workpiece_not_used"]
+        ids = used_df["upper_workpiece_id"].tolist()
+
+        unused_count = len(df["upper_workpiece_id"].tolist()) - len(ids)
+        if unused_count > 0:
+            print(
+                f"Excluded {unused_count} unused workpiece entries ('workpiece_not_used')"
+            )
+
         dataset = cls.from_ids(ids)
-        dataset.class_values_df = df
+        dataset.class_values_df = used_df
 
         # Provide feedback about what was created
         print(
@@ -182,41 +198,144 @@ class ExperimentDataset:
 
     def get_data(self) -> pd.DataFrame:
         """
-        Extract data from all experiments and combine into a DataFrame.
+        Extract data from complete experiments into a DataFrame.
 
-        This aggregates time series and measurement data from all experiments
-        in the dataset into a single DataFrame suitable for analysis.
-        Each row represents one experiment, columns are flattened features.
+        Combines class values and flattened time series features, automatically
+        excluding experiments with missing serial data. Generates data quality
+        report accessible via self.data_quality_report.
 
         Returns:
-            pandas.DataFrame: Each row is an experiment, columns are features.
-                            Index contains the upper_workpiece_ids.
-                            Empty DataFrame if no experiments have data.
+            pandas.DataFrame: Each row is a complete experiment with:
+                            - First 5 columns: Class values (upper_workpiece_id,
+                            lower_workpiece_id, class_value_upper_work_piece,
+                            class_value_lower_work_piece, class_value_screw_driving)
+                            - Remaining columns: Flattened features from time series data
+                            - Default integer index (0, 1, 2, ...)
+                            - Empty DataFrame if no complete experiments found
 
         Example:
             >>> dataset = ExperimentDataset.from_class_values(
             ...     filter_type="contains", filter_value="control"
             ... )
             >>> features_df = dataset.get_data()
-            >>> print(f"Dataset shape: {features_df.shape}")
-            >>> print(f"Available features: {list(features_df.columns)}")
+            >>> print(f"Complete experiments: {len(features_df)}")
+            >>> print(f"Data quality: {dataset.data_quality_report}")
         """
+        # Initialize data quality tracking
+        self.data_quality_report = self._init_data_quality_report()
+
         # Aggregate experiment-level results
         all_data = []
-        experiment_ids = []
 
         for experiment in self.experiments:
-            exp_data = experiment.get_data()  # Get data from individual experiment
-            if exp_data:  # Only include experiments that have data
-                # Flatten the nested dict structure into a single row
-                flattened = self._flatten_experiment_data(exp_data)
-                all_data.append(flattened)
-                experiment_ids.append(experiment.upper_workpiece_id)
+            # Evaluate data quality for this experiment
+            missing_processes = self._evaluate_experiment_data_quality(experiment)
+
+            # Only include experiments with complete data (all 4 processes)
+            if len(missing_processes) == 0:
+                self.data_quality_report["complete_experiments"] += 1
+
+                exp_data = experiment.get_data()
+                if exp_data:  # Additional check for successful data extraction
+                    # Start with class values for this experiment
+                    row_data = {}
+
+                    # Add class values as first columns if available
+                    if self.class_values_df is not None:
+                        try:
+                            class_row = self.class_values_df.loc[
+                                int(experiment.upper_workpiece_id)
+                            ]
+                            row_data.update(class_row.to_dict())
+                        except KeyError:
+                            print(
+                                f"Warning: No class values found for experiment {experiment.upper_workpiece_id}"
+                            )
+
+                    # Flatten and add the experiment feature data
+                    flattened = self._flatten_experiment_data(exp_data)
+                    row_data.update(flattened)
+
+                    all_data.append(row_data)
+
+        # Calculate percentages and print summary
+        self._finalize_data_quality_report()
 
         if not all_data:
-            return pd.DataFrame()  # Return empty DataFrame if no data
+            return pd.DataFrame()
 
-        return pd.DataFrame(all_data, index=experiment_ids)
+        return pd.DataFrame(all_data)
+
+    def _finalize_data_quality_report(self):
+        """Calculate percentages and print data quality summary."""
+        total_experiments = self.data_quality_report["total_experiments"]
+
+        # Calculate percentages
+        if total_experiments > 0:
+            for process in self.data_quality_report["missing_data_counts"]:
+                missing_count = self.data_quality_report["missing_data_counts"][process]
+                percentage = (missing_count / total_experiments) * 100
+                self.data_quality_report["missing_data_percentages"][process] = round(
+                    percentage, 1
+                )
+
+        # Print summary
+        excluded = total_experiments - self.data_quality_report["complete_experiments"]
+        if excluded > 0:
+            print(f"Excluded {excluded} experiments due to missing serial data")
+            print(
+                f"Using {self.data_quality_report['complete_experiments']} complete experiments"
+            )
+
+    def _init_data_quality_report(self) -> dict:
+        """Initialize empty data quality report structure."""
+        return {
+            "total_experiments": len(self.experiments),
+            "missing_data_counts": {
+                "injection_upper": 0,
+                "injection_lower": 0,
+                "screw_left": 0,
+                "screw_right": 0,
+            },
+            "missing_data_percentages": {},
+            "missing_experiment_ids": {
+                "injection_upper": [],
+                "injection_lower": [],
+                "screw_left": [],
+                "screw_right": [],
+            },
+            "complete_experiments": 0,
+        }
+
+    def _evaluate_experiment_data_quality(self, experiment) -> list:
+        """
+        Evaluate data quality for a single experiment and update report.
+
+        Args:
+            experiment: ExperimentData instance to evaluate
+
+        Returns:
+            list: Names of processes with missing data (empty if complete)
+        """
+        missing_processes = []
+
+        # Check each process and update report if missing
+        processes_to_check = [
+            ("injection_upper", experiment.injection_upper),
+            ("injection_lower", experiment.injection_lower),
+            ("screw_left", experiment.screw_left),
+            ("screw_right", experiment.screw_right),
+        ]
+
+        for process_name, process_obj in processes_to_check:
+            if process_obj.serial_data is None:
+                self.data_quality_report["missing_data_counts"][process_name] += 1
+                self.data_quality_report["missing_experiment_ids"][process_name].append(
+                    experiment.upper_workpiece_id
+                )
+                missing_processes.append(process_name)
+
+        return missing_processes
 
     def _flatten_experiment_data(self, exp_data: Dict) -> Dict:
         """

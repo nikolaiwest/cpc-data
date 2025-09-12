@@ -186,6 +186,36 @@ class InjectionMoldingBase(BaseRecording):
 
         return result
 
+    def _is_serial_data_missing(self) -> bool:
+        """
+        Check if serial data file is missing or unavailable.
+
+        Handles different missing data patterns across upper and lower workpieces:
+        - Lower: filename = "Missing"
+        - Upper/Lower: lower_workpiece_id = "workpiece_not_used"
+        - Any: empty filename or placeholder dates indicating unused workpieces
+
+        Returns:
+            bool: True if serial data should be considered missing
+        """
+        if self.static_data is None:
+            return True
+
+        filename = self.static_data[CSV.file_name]
+        lower_workpiece_id = self.static_data[CSV.lower_workpiece_id]
+        date = self.static_data[CSV.date]
+
+        # Check for various missing data indicators
+        if (
+            filename is None
+            or str(filename).lower() in ["missing", ""]
+            or str(lower_workpiece_id).lower() == "workpiece_not_used"
+            or str(date) == "00.01.1900"  # Placeholder date indicating unused workpiece
+        ):
+            return True
+
+        return False
+
 
 class InjectionMoldingUpper(InjectionMoldingBase):
     """
@@ -212,39 +242,50 @@ class InjectionMoldingUpper(InjectionMoldingBase):
         contains pressure, velocity, volume, and state measurements sampled
         at regular intervals during the injection molding cycle.
 
-        Upper workpiece data includes state information that tracks the
-        injection molding machine's operational mode throughout the cycle.
-
         Returns:
             dict or None: Dictionary with time series data where keys are parameter
-                         names (time, injection_pressure_target, injection_pressure_actual,
-                         injection_velocity, melt_volume, state) and values are lists
-                         of measurements ordered chronologically. Returns None if static
-                         data is unavailable or CSV file cannot be read.
-
-        Raises:
-            FileNotFoundError: If the CSV file specified in static data is missing
-            pandas.errors.ParserError: If CSV file is malformed
+                        names (time, injection_pressure_target, injection_pressure_actual,
+                        injection_velocity, melt_volume, state) and values are lists
+                        of measurements ordered chronologically. Returns None if static
+                        data is unavailable, file_name indicates missing data, or CSV
+                        file cannot be read.
         """
-        # Need static data first to get file name
-        if self.static_data is None:
+
+        try:
+            # Load time series data from CSV file
+            serial_data_path = get_injection_molding_serial_data(
+                self._get_position(), self.static_data[CSV.file_name]
+            )
+            df = pd.read_csv(serial_data_path, index_col=0)
+
+            # Verify required columns exist
+            required_columns = [
+                IMA.time,
+                IMA.pressure_target,
+                IMA.pressure_actual,
+                IMA.velocity,
+                IMA.volume,
+                IMA.state,
+            ]
+            if not all(col in df.columns for col in required_columns):
+                return None
+
+            # Check if DataFrame is empty
+            if df.empty:
+                return None
+
+            # Return time series data using consistent attribute names
+            return {
+                IMA.time: df[IMA.time].tolist(),
+                IMA.pressure_target: df[IMA.pressure_target].tolist(),
+                IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
+                IMA.velocity: df[IMA.velocity].tolist(),
+                IMA.volume: df[IMA.volume].tolist(),
+                IMA.state: df[IMA.state].tolist(),
+            }
+
+        except (FileNotFoundError, PermissionError, OSError, pd.errors.ParserError):
             return None
-
-        # Load time series data from CSV file
-        serial_data_path = get_injection_molding_serial_data(
-            self._get_position(), self.static_data[CSV.file_name]
-        )
-        df = pd.read_csv(serial_data_path, index_col=0)
-
-        # Return time series data using consistent attribute names
-        return {
-            IMA.time: df[IMA.time].tolist(),
-            IMA.pressure_target: df[IMA.pressure_target].tolist(),
-            IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
-            IMA.velocity: df[IMA.velocity].tolist(),
-            IMA.volume: df[IMA.volume].tolist(),
-            IMA.state: df[IMA.state].tolist(),
-        }
 
 
 class InjectionMoldingLower(InjectionMoldingBase):
@@ -269,68 +310,72 @@ class InjectionMoldingLower(InjectionMoldingBase):
         contains semicolon-delimited data with a special "-start data-" marker
         indicating where the actual measurement data begins.
 
-        Lower workpiece data excludes state information but includes the same
-        pressure, velocity, and volume measurements as upper workpiece data.
-
         Returns:
             dict or None: Dictionary with time series data where keys are parameter
-                         names (time, injection_pressure_target, injection_pressure_actual,
-                         injection_velocity, melt_volume) and values are lists of
-                         measurements ordered chronologically. Returns None if static
-                         data is unavailable or TXT file cannot be read.
-
-        Raises:
-            FileNotFoundError: If the TXT file specified in static data is missing
-            ValueError: If "-start data-" marker is not found in the file
+                        names (time, injection_pressure_target, injection_pressure_actual,
+                        injection_velocity, melt_volume) and values are lists of
+                        measurements ordered chronologically. Returns None if static
+                        data is unavailable, file_name indicates missing data, or TXT
+                        file cannot be read.
         """
-        # Need static data first to get file name
-        if self.static_data is None:
+        # Check if serial data is missing
+        if self._is_serial_data_missing():
             return None
 
-        # Load time series data from custom TXT file
-        serial_data_path = get_injection_molding_serial_data(
-            self._get_position(), self.static_data[CSV.file_name]
-        )
+        try:
+            # Load time series data from custom TXT file
+            serial_data_path = get_injection_molding_serial_data(
+                self._get_position(), self.static_data[CSV.file_name]
+            )
 
-        # Read file and locate data section
-        with open(serial_data_path, "r") as file:
-            lines = file.readlines()
+            # Read file and locate data section
+            with open(serial_data_path, "r") as file:
+                lines = file.readlines()
 
-        # Find where actual data starts (after "-start data-" marker)
-        data_start_idx = None
-        for i, line in enumerate(lines):
-            if "-start data-" in line:
-                data_start_idx = i + 1
-                break
+            # Find where actual data starts (after "-start data-" marker)
+            data_start_idx = None
+            for i, line in enumerate(lines):
+                if "-start data-" in line:
+                    data_start_idx = i + 1
+                    break
 
-        if data_start_idx is None:
-            raise ValueError(f"Could not find data section in {serial_data_path}")
+            if data_start_idx is None:
+                return None
 
-        # Parse semicolon-separated data lines
-        data_lines = lines[data_start_idx:]
-        data_rows = []
-        for line in data_lines:
-            if line.strip():  # Skip empty lines
-                values = line.strip().split(";")
-                data_rows.append([float(v) for v in values])
+            # Parse semicolon-separated data lines
+            data_lines = lines[data_start_idx:]
+            data_rows = []
+            for line in data_lines:
+                if line.strip():
+                    try:
+                        values = line.strip().split(";")
+                        data_rows.append([float(v) for v in values])
+                    except ValueError:
+                        continue
 
-        # Convert to DataFrame with proper column names
-        df = pd.DataFrame(
-            data_rows,
-            columns=[
-                IMA.time,
-                IMA.pressure_target,
-                IMA.pressure_actual,
-                IMA.volume,
-                IMA.velocity,
-            ],
-        )
+            if not data_rows:
+                return None
 
-        # Return time series data (note: no state data for lower workpiece)
-        return {
-            IMA.time: df[IMA.time].tolist(),
-            IMA.pressure_target: df[IMA.pressure_target].tolist(),
-            IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
-            IMA.velocity: df[IMA.velocity].tolist(),
-            IMA.volume: df[IMA.volume].tolist(),
-        }
+            # Convert to DataFrame with proper column names
+            df = pd.DataFrame(
+                data_rows,
+                columns=[
+                    IMA.time,
+                    IMA.pressure_target,
+                    IMA.pressure_actual,
+                    IMA.volume,
+                    IMA.velocity,
+                ],
+            )
+
+            # Return time series data (note: no state data for lower workpiece)
+            return {
+                IMA.time: df[IMA.time].tolist(),
+                IMA.pressure_target: df[IMA.pressure_target].tolist(),
+                IMA.pressure_actual: df[IMA.pressure_actual].tolist(),
+                IMA.velocity: df[IMA.velocity].tolist(),
+                IMA.volume: df[IMA.volume].tolist(),
+            }
+
+        except (FileNotFoundError, PermissionError, OSError):
+            return None
