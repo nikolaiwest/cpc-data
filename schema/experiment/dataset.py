@@ -173,10 +173,18 @@ class ExperimentDataset:
         if sample_size and len(df) > sample_size:
             df = df.sample(n=sample_size, random_state=42)
 
-        # Create dataset from the filtered IDs
-        ids = df["upper_workpiece_id"].tolist()
+        # Filter out unused workpiece IDs
+        used_df = df[df["upper_workpiece_id"] != "workpiece_not_used"]
+        ids = used_df["upper_workpiece_id"].tolist()
+
+        unused_count = len(df["upper_workpiece_id"].tolist()) - len(ids)
+        if unused_count > 0:
+            print(
+                f"Excluded {unused_count} unused workpiece entries ('workpiece_not_used')"
+            )
+
         dataset = cls.from_ids(ids)
-        dataset.class_values_df = df
+        dataset.class_values_df = used_df
 
         # Provide feedback about what was created
         print(
