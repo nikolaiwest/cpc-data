@@ -192,7 +192,8 @@ class InjectionMoldingBase(BaseRecording):
 
         Handles different missing data patterns across upper and lower workpieces:
         - Lower: filename = "Missing"
-        - Upper: lower_workpiece_id = "workpiece_not_used" or empty filename
+        - Upper/Lower: lower_workpiece_id = "workpiece_not_used"
+        - Any: empty filename or placeholder dates indicating unused workpieces
 
         Returns:
             bool: True if serial data should be considered missing
@@ -202,12 +203,14 @@ class InjectionMoldingBase(BaseRecording):
 
         filename = self.static_data[CSV.file_name]
         lower_workpiece_id = self.static_data[CSV.lower_workpiece_id]
+        date = self.static_data[CSV.date]
 
         # Check for various missing data indicators
         if (
             filename is None
             or str(filename).lower() in ["missing", ""]
             or str(lower_workpiece_id).lower() == "workpiece_not_used"
+            or str(date) == "00.01.1900"  # Placeholder date indicating unused workpiece
         ):
             return True
 
