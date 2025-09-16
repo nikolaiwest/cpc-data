@@ -243,10 +243,12 @@ class ExperimentDataset:
                     # Add class values as first columns if available
                     if self.class_values_df is not None:
                         try:
-                            class_row = self.class_values_df.loc[
-                                int(experiment.upper_workpiece_id)
+                            class_row = self.class_values_df[
+                                self.class_values_df.upper_workpiece_id
+                                == experiment.upper_workpiece_id
                             ]
-                            row_data.update(class_row.to_dict())
+                            class_row = class_row.iloc[0].to_dict()
+                            row_data.update(class_row)
                         except KeyError:
                             print(
                                 f"Warning: No class values found for experiment {experiment.upper_workpiece_id}"
