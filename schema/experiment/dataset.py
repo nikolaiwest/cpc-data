@@ -196,7 +196,7 @@ class ExperimentDataset:
 
         return dataset
 
-    def get_data(self) -> pd.DataFrame:
+    def get_data(self, explode: bool = False) -> pd.DataFrame:
         """
         Extract data from complete experiments into a DataFrame.
 
@@ -204,12 +204,20 @@ class ExperimentDataset:
         excluding experiments with missing serial data. Generates data quality
         report accessible via self.data_quality_report.
 
+        Args:
+            explode: If True, transforms time series lists into individual timestep
+                    columns (e.g., 'pressure.t0001', 'pressure.t0002'). If False
+                    (default), keeps time series as lists in single columns.
+
         Returns:
             pandas.DataFrame: Each row is a complete experiment with:
                             - First 5 columns: Class values (upper_workpiece_id,
                             lower_workpiece_id, class_value_upper_work_piece,
                             class_value_lower_work_piece, class_value_screw_driving)
                             - Remaining columns: Flattened features from time series data
+                            * If explode=False: Time series stored as lists
+                            * If explode=True: Time series expanded into individual
+                                timestep columns with format 'feature.t0001', 'feature.t0002', etc.
                             - Default integer index (0, 1, 2, ...)
                             - Empty DataFrame if no complete experiments found
 
@@ -266,7 +274,50 @@ class ExperimentDataset:
         if not all_data:
             return pd.DataFrame()
 
+        if explode:
+            return_df = pd.DataFrame(all_data)
+            return self._explode_time_series(return_df)
+
         return pd.DataFrame(all_data)
+
+    def _explode_time_series(self, df, time_step_format="t{:04d}"):
+        """
+        Transform time series lists into individual time-step columns.
+
+        Args:
+            df: DataFrame with time series as lists in cells
+            time_step_format: Format string for time step numbering (default: t0001, t0002, etc.)
+
+        Returns:
+            DataFrame with exploded time series columns
+        """
+        # Keep class value columns (first 5)
+        class_cols = df.iloc[:, :5].copy()
+
+        # Process time series columns (from column 5 onwards)
+        exploded_data = {}
+
+        for col in df.columns[5:]:  # Skip first 5 class columns
+            series_data = df[col]
+
+            # Find max length across all experiments for this series
+            max_length = max(
+                len(ts) if isinstance(ts, list) and ts is not None else 0
+                for ts in series_data
+            )
+
+            # Create columns for each time step
+            for t in range(max_length):
+                time_col = f"{col}.{time_step_format.format(t+1)}"
+                exploded_data[time_col] = [
+                    ts[t] if isinstance(ts, list) and len(ts) > t else None
+                    for ts in series_data
+                ]
+
+        # Combine class columns with exploded time series
+        exploded_df = pd.concat([class_cols, pd.DataFrame(exploded_data)], axis=1)
+
+        return exploded_df
 
     def _finalize_data_quality_report(self):
         """Calculate percentages and print data quality summary."""
