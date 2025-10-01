@@ -1,0 +1,20 @@
+# Download configuration for manufacturing process data
+# Data hosted on Zenodo: https://doi.org/10.5281/zenodo.17104175
+
+dataset:
+  name: "cross_process_chain_data"
+  version: "1.1"
+  zenodo_record_id: "17240390"
+  
+files:
+  - filename: "cpc_data.zip"
+    url: "https://zenodo.org/records/17240390/files/cpc_data.zip"
+    md5: "069e190338b2ca29f736b21fabf407ba"
+    size_mb: 685.5  # Approximate size for user info
+    extract_to: "data/"
+
+download_settings:
+  archive_dir: "download/archive"
+  keep_archive: false  # Delete ZIP after successful extraction
+  verify_checksum: true
+  chunk_size: 8192  # Download chunk size in bytes
