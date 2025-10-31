@@ -1,5 +1,3 @@
-"""
-Download module for fetching dataset from Zenodo.
-"""
+from .manager import download_data, ensure_data_available
 
-# Will be implemented in future commits
+__all__ = ["ensure_data_available", "download_data"]
