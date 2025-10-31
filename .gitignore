@@ -3,10 +3,6 @@ data/**/**/*.json
 data/**/**/**/*.txt
 data/**/**/**/*.csv
 
-# Ignore the helper script + class value collection
-data/class_values_from_excel.py
-data/class_values.xlsx
-
 # But include three example files for reference
 !data/injection_molding/upper_workpiece/serial_data/upper_workpiece_cycle_00001.csv
 !data/injection_molding/lower_workpiece/serial_data/lower_workpiece_cycle_00002.txt
@@ -17,6 +13,16 @@ data/class_values.xlsx
 !data/injection_molding/lower_workpiece/static_data.csv
 !data/screw_driving/static_data.csv
 !data/class_values.csv
+
+# Ignore the downloaded zip files in the download/ module
+download/archive/*.zip
+
+# Ignore all notebooks with temporary or experimental code 
+notebooks/
+
+# Ignore the helper script + class value collection
+data/class_values_from_excel.py
+data/class_values.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
